@@ -79,6 +79,7 @@ export interface Medication {
 
 export interface PatientProfile {
   weightKg: number;
+  heightCm?: number; // Estatura / Talla en centímetros (para cálculo de IMC y ASC)
   ageYears: number;
   ageMonths: number;
   gender: 'male' | 'female';

@@ -178,6 +178,11 @@ export const CustomCalculator: React.FC<CustomCalculatorProps> = ({
               }
               className="w-full text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
+            {patient.heightCm && patient.heightCm > 0 && (
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium block mt-1">
+                Talla: {patient.heightCm} cm · IMC {(patient.weightKg / Math.pow(patient.heightCm / 100, 2)).toFixed(1)} kg/m²
+              </span>
+            )}
           </div>
 
           <div>

@@ -66,18 +66,25 @@ export default function App() {
   const [patient, setPatient] = useState<PatientProfile>(() => {
     try {
       const saved = localStorage.getItem('mdformulary_patient');
-      return saved
-        ? JSON.parse(saved)
-        : {
-            weightKg: 14,
-            ageYears: 3,
-            ageMonths: 0,
-            gender: 'male',
-            serumCreatinineMgDl: 0.7
-          };
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!parsed.heightCm) {
+          parsed.heightCm = parsed.weightKg >= 45 ? 170 : 95;
+        }
+        return parsed;
+      }
+      return {
+        weightKg: 14,
+        heightCm: 95,
+        ageYears: 3,
+        ageMonths: 0,
+        gender: 'male',
+        serumCreatinineMgDl: 0.7
+      };
     } catch {
       return {
         weightKg: 14,
+        heightCm: 95,
         ageYears: 3,
         ageMonths: 0,
         gender: 'male',

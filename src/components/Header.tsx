@@ -25,6 +25,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenFavorites,
   onOpenVaccines
 }) => {
+  const patientBmi =
+    patient.heightCm && patient.heightCm > 0
+      ? (patient.weightKg / Math.pow(patient.heightCm / 100, 2)).toFixed(1)
+      : null;
+
   return (
     <header className="sticky top-0 z-30 bg-emerald-700 text-white shadow-md">
       {/* Top Bar */}
@@ -51,15 +56,26 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5">
-          {/* Quick Patient Pill */}
+          {/* Quick Patient Pill with IMC */}
           <button
             onClick={onOpenPatientModal}
-            title="Editar peso y datos del paciente"
-            className="flex items-center gap-1 text-xs bg-emerald-800 hover:bg-emerald-900 text-white font-medium px-2.5 py-1.5 rounded-md transition-colors border border-emerald-600/50 active:scale-95 shadow-xs"
+            title={
+              patientBmi
+                ? `Paciente: ${patient.weightKg} kg · ${patient.heightCm} cm · IMC ${patientBmi} kg/m² (Clic para editar o calcular IMC)`
+                : 'Editar peso, talla y calcular IMC del paciente'
+            }
+            className="flex items-center gap-1.5 text-xs bg-emerald-800 hover:bg-emerald-900 text-white font-medium px-2.5 py-1.5 rounded-md transition-colors border border-emerald-600/50 active:scale-95 shadow-xs"
           >
             <UserCheck className="w-3.5 h-3.5 text-emerald-200" />
-            <span className="font-semibold">{patient.weightKg} kg</span>
-            <span className="text-emerald-200 text-[11px]">({patient.ageYears > 0 ? `${patient.ageYears}a` : `${patient.ageMonths}m`})</span>
+            <span className="font-bold">{patient.weightKg} kg</span>
+            {patientBmi && (
+              <span className="hidden xs:inline-block px-1.5 py-0.5 bg-emerald-950/70 text-[10px] rounded font-bold text-emerald-200">
+                IMC {patientBmi}
+              </span>
+            )}
+            <span className="text-emerald-200 text-[11px]">
+              ({patient.ageYears > 0 ? `${patient.ageYears}a` : `${patient.ageMonths}m`})
+            </span>
           </button>
 
           {/* Vaccines SRS 2025 shortcut */}

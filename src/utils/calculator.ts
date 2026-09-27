@@ -220,6 +220,181 @@ export function calculateBSA(weightKg: number, heightCm: number): number {
   return Number(Math.sqrt((weightKg * heightCm) / 3600).toFixed(2));
 }
 
+export interface BmiCalculationResult {
+  bmi: number;
+  category: string;
+  categoryKey: 'underweight' | 'normal' | 'overweight' | 'obese1' | 'obese2' | 'obese3';
+  color: string;
+  badgeBg: string;
+  borderColor: string;
+  gaugePercentage: number;
+  isPediatric: boolean;
+  pediatricInterpretation?: string;
+  healthyWeightRange: { min: number; max: number };
+  idealWeightKg: number;
+  weightDifferenceKg: number;
+  bsaM2: number;
+  interpretation: string;
+}
+
+/**
+ * Body Mass Index (IMC = Peso (kg) / [Talla (m)]^2) & Nutritional Status
+ */
+export function calculateBMI(params: {
+  weightKg: number;
+  heightCm: number;
+  ageYears?: number;
+  ageMonths?: number;
+  gender?: 'male' | 'female';
+}): BmiCalculationResult | null {
+  const { weightKg, heightCm, ageYears = 30, ageMonths = 0, gender = 'male' } = params;
+  if (!weightKg || !heightCm || weightKg <= 0 || heightCm <= 0) {
+    return null;
+  }
+
+  const heightM = heightCm / 100;
+  const bmi = Number((weightKg / (heightM * heightM)).toFixed(1));
+  const bsaM2 = calculateBSA(weightKg, heightCm);
+
+  const isPediatric = ageYears < 18;
+
+  // Healthy weight range for adults (BMI 18.5 - 24.9)
+  const minHealthyKg = Number((18.5 * heightM * heightM).toFixed(1));
+  const maxHealthyKg = Number((24.9 * heightM * heightM).toFixed(1));
+
+  // Ideal body weight (Devine formula if adult, or pediatric ~16.5)
+  let idealWeightKg = 0;
+  if (isPediatric) {
+    idealWeightKg = Number((16.5 * heightM * heightM).toFixed(1));
+  } else {
+    const heightInches = heightCm / 2.54;
+    if (heightInches >= 60) {
+      const extraInches = heightInches - 60;
+      idealWeightKg = gender === 'male' ? 50 + 2.3 * extraInches : 45.5 + 2.3 * extraInches;
+    } else {
+      idealWeightKg = Number((22.0 * heightM * heightM).toFixed(1));
+    }
+    idealWeightKg = Number(idealWeightKg.toFixed(1));
+  }
+
+  let weightDifferenceKg = 0;
+  if (weightKg > maxHealthyKg) {
+    weightDifferenceKg = Number((weightKg - maxHealthyKg).toFixed(1));
+  } else if (weightKg < minHealthyKg) {
+    weightDifferenceKg = Number((weightKg - minHealthyKg).toFixed(1));
+  }
+
+  let category = '';
+  let categoryKey: 'underweight' | 'normal' | 'overweight' | 'obese1' | 'obese2' | 'obese3' = 'normal';
+  let color = 'text-emerald-700 dark:text-emerald-400';
+  let badgeBg = 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200';
+  let borderColor = 'border-emerald-300 dark:border-emerald-700';
+  let interpretation = '';
+  let pediatricInterpretation = '';
+
+  if (isPediatric) {
+    let pCat = 'Peso Adecuado / Eutrófico (p5 - p85 OMS)';
+    if (bmi < 14.0) {
+      pCat = 'Bajo Peso / Desnutrición (<p5 OMS)';
+      categoryKey = 'underweight';
+      color = 'text-sky-700 dark:text-sky-400';
+      badgeBg = 'bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-200';
+      borderColor = 'border-sky-300 dark:border-sky-700';
+      interpretation = 'IMC compatible con bajo peso para la edad. Se sugiere evaluar curvas OMS (P/E y T/E).';
+    } else if (bmi <= 18.0) {
+      pCat = 'Peso Adecuado / Eutrófico (p5 - p85 OMS)';
+      categoryKey = 'normal';
+      color = 'text-emerald-700 dark:text-emerald-400';
+      badgeBg = 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200';
+      borderColor = 'border-emerald-300 dark:border-emerald-700';
+      interpretation = 'Desarrollo ponderal óptimo según patrones de crecimiento de la OMS.';
+    } else if (bmi <= 21.0) {
+      pCat = 'Sobrepeso Infantil (p85 - p95 OMS)';
+      categoryKey = 'overweight';
+      color = 'text-amber-700 dark:text-amber-400';
+      badgeBg = 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200';
+      borderColor = 'border-amber-300 dark:border-amber-700';
+      interpretation = 'IMC entre percentil 85 y 95. Se sugiere asesoría de hábitos nutricionales y actividad.';
+    } else {
+      pCat = 'Obesidad Pediátrica (>p95 OMS / >+2 DE)';
+      categoryKey = 'obese1';
+      color = 'text-rose-700 dark:text-rose-400';
+      badgeBg = 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200';
+      borderColor = 'border-rose-300 dark:border-rose-700';
+      interpretation = 'IMC superior al percentil 95 (>+2 DE OMS). Requiere seguimiento médico y tamizaje metabólico.';
+    }
+    category = pCat;
+    pediatricInterpretation = 'En pediatría (<18 años), el IMC se evalúa por percentil y z-scores de la OMS según edad y sexo.';
+  } else {
+    if (bmi < 18.5) {
+      category = 'Bajo Peso (Delgadez)';
+      categoryKey = 'underweight';
+      color = 'text-sky-700 dark:text-sky-400';
+      badgeBg = 'bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-200';
+      borderColor = 'border-sky-300 dark:border-sky-700';
+      interpretation = 'Peso inferior al rango saludable. Mayor riesgo de déficit nutricional y osteoporosis.';
+    } else if (bmi < 25.0) {
+      category = 'Peso Saludable (Eutrófico)';
+      categoryKey = 'normal';
+      color = 'text-emerald-700 dark:text-emerald-400';
+      badgeBg = 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200';
+      borderColor = 'border-emerald-300 dark:border-emerald-700';
+      interpretation = 'Peso corporal dentro del intervalo óptimo de bajo riesgo cardiovascular y metabólico (OMS).';
+    } else if (bmi < 30.0) {
+      category = 'Sobrepeso (Preobesidad)';
+      categoryKey = 'overweight';
+      color = 'text-amber-700 dark:text-amber-400';
+      badgeBg = 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200';
+      borderColor = 'border-amber-300 dark:border-amber-700';
+      interpretation = 'Peso superior al recomendado. Aumento moderado de riesgo cardiovascular y resistencia insulínica.';
+    } else if (bmi < 35.0) {
+      category = 'Obesidad Grado I (Moderada)';
+      categoryKey = 'obese1';
+      color = 'text-orange-700 dark:text-orange-400';
+      badgeBg = 'bg-orange-50 dark:bg-orange-950/60 text-orange-800 dark:text-orange-200';
+      borderColor = 'border-orange-300 dark:border-orange-700';
+      interpretation = 'Obesidad moderada (OMS). Se aconseja intervención nutricional y control de lípidos/glucemia.';
+    } else if (bmi < 40.0) {
+      category = 'Obesidad Grado II (Severa)';
+      categoryKey = 'obese2';
+      color = 'text-rose-700 dark:text-rose-400';
+      badgeBg = 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200';
+      borderColor = 'border-rose-300 dark:border-rose-700';
+      interpretation = 'Riesgo cardiovascular alto. Requiere manejo médico estructurado.';
+    } else {
+      category = 'Obesidad Grado III (Mórbida)';
+      categoryKey = 'obese3';
+      color = 'text-red-800 dark:text-red-400';
+      badgeBg = 'bg-red-50 dark:bg-red-950/60 text-red-900 dark:text-red-200';
+      borderColor = 'border-red-400 dark:border-red-700';
+      interpretation = 'Obesidad muy severa (mórbida). Indicación de abordaje multidisciplinario especializado.';
+    }
+  }
+
+  // Gauge percentage: map BMI range [12, 42] to [0%, 100%]
+  const minScale = 12;
+  const maxScale = 42;
+  const clampedBmi = Math.min(Math.max(bmi, minScale), maxScale);
+  const gaugePercentage = Math.round(((clampedBmi - minScale) / (maxScale - minScale)) * 100);
+
+  return {
+    bmi,
+    category,
+    categoryKey,
+    color,
+    badgeBg,
+    borderColor,
+    gaugePercentage,
+    isPediatric,
+    pediatricInterpretation,
+    healthyWeightRange: { min: minHealthyKg, max: maxHealthyKg },
+    idealWeightKg,
+    weightDifferenceKg,
+    bsaM2,
+    interpretation
+  };
+}
+
 /**
  * Infusion Calculation
  */

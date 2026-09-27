@@ -377,11 +377,11 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
 
             {/* INPUTS SECTION */}
             <div className="space-y-4">
-              {/* 1. Patient Weight Input Box */}
+              {/* 1. Patient Weight & Height Input Box */}
               <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    1. Peso del Paciente
+                    1. Peso y Talla del Paciente
                   </label>
                   <span className="text-[11px] text-slate-500 font-medium">
                     Edad: {patient.ageYears > 0 ? `${patient.ageYears} años` : `${patient.ageMonths} meses`}
@@ -434,6 +434,37 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
                       +1
                     </button>
                   </div>
+                </div>
+
+                {/* Patient Height and BMI row */}
+                <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-500">
+                    <span className="font-medium text-[11px]">Talla:</span>
+                    <input
+                      type="number"
+                      min="30"
+                      max="250"
+                      value={patient.heightCm || ''}
+                      placeholder="95"
+                      onChange={(e) =>
+                        onUpdatePatient({
+                          ...patient,
+                          heightCm: parseFloat(e.target.value) || 0
+                        })
+                      }
+                      className="w-16 px-1.5 py-0.5 font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-center text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                    />
+                    <span className="text-[11px]">cm</span>
+                  </div>
+
+                  {patient.heightCm && patient.heightCm > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-slate-400 font-medium">IMC:</span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 text-xs">
+                        {(patient.weightKg / Math.pow(patient.heightCm / 100, 2)).toFixed(1)} kg/m²
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
