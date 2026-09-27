@@ -1,0 +1,8 @@
+{
+  "name": "Remix MDFormulary - Calculadora Médica y Dosificación",
+  "description": "Calculadora clínica y guía para formular medicamentos pediátricos y adultos con interfaz estilo MDCalc para teléfono móvil.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
