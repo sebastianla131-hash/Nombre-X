@@ -171,9 +171,31 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
         </div>
 
         <div>
-          <h1 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white leading-tight">
-            {medication.name}
-          </h1>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h1 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white leading-tight">
+              {medication.name}
+            </h1>
+            {medication.atcCode && (
+              <span className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700">
+                ATC {medication.atcCode}
+              </span>
+            )}
+            {medication.awareCategory === 'Access' && (
+              <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-200 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-300">
+                AWaRe: Acceso
+              </span>
+            )}
+            {medication.awareCategory === 'Watch' && (
+              <span className="text-[11px] font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded border border-amber-300">
+                AWaRe: Precaución
+              </span>
+            )}
+            {medication.awareCategory === 'Reserve' && (
+              <span className="text-[11px] font-bold text-rose-800 dark:text-rose-200 bg-rose-100 dark:bg-rose-950 px-2 py-0.5 rounded border border-rose-300">
+                AWaRe: Reserva
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             <span>{medication.therapeuticClass}</span>
             <span aria-hidden="true">·</span>

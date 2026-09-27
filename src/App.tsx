@@ -15,7 +15,8 @@ import {
   Droplets,
   Calculator,
   ChevronRight,
-  Info
+  Info,
+  Syringe
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { BottomNav, TabType } from './components/BottomNav';
@@ -25,6 +26,7 @@ import { RenalAdjustmentCalculator } from './components/RenalAdjustmentCalculato
 import { InfusionCalculator } from './components/InfusionCalculator';
 import { CustomCalculator } from './components/CustomCalculator';
 import { PatientProfileModal } from './components/PatientProfileModal';
+import { VaccinesModal } from './components/VaccinesModal';
 import { PhoneContainer } from './components/PhoneContainer';
 import { MEDICATIONS } from './data/medications';
 import { Medication, DrugCategory, PatientProfile } from './types';
@@ -36,7 +38,9 @@ const CATEGORIES: DrugCategory[] = [
   'Analgesia / AINEs',
   'Urgencias / Respiratorio',
   'Gastroenterología',
-  'Corticoides'
+  'Cardiovascular',
+  'Corticoides',
+  'Antídotos / Toxicología'
 ];
 
 export default function App() {
@@ -46,6 +50,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<DrugCategory>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isPatientModalOpen, setIsPatientModalOpen] = useState<boolean>(false);
+  const [isVaccinesModalOpen, setIsVaccinesModalOpen] = useState<boolean>(false);
   const [isPhoneFrame, setIsPhoneFrame] = useState<boolean>(true);
 
   // Persistent Favorites & Patient Profile
@@ -130,7 +135,15 @@ export default function App() {
         const matchesIndication = med.indications.some((i) =>
           i.name.toLowerCase().includes(query)
         );
-        return matchesName || matchesClass || matchesCommercial || matchesIndication;
+        const matchesAtc = med.atcCode ? med.atcCode.toLowerCase().includes(query) : false;
+        const matchesAware = med.awareCategory
+          ? med.awareCategory.toLowerCase().includes(query) ||
+            (med.awareCategory === 'Access' && query.includes('acces')) ||
+            (med.awareCategory === 'Watch' && (query.includes('precau') || query.includes('vigil'))) ||
+            (med.awareCategory === 'Reserve' && query.includes('reserv'))
+          : false;
+        const matchesBadge = med.badgeText ? med.badgeText.toLowerCase().includes(query) : false;
+        return matchesName || matchesClass || matchesCommercial || matchesIndication || matchesAtc || matchesAware || matchesBadge;
       }
 
       return true;
@@ -161,6 +174,7 @@ export default function App() {
           setSelectedDrug(null);
           setActiveTab('favorites');
         }}
+        onOpenVaccines={() => setIsVaccinesModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -191,6 +205,31 @@ export default function App() {
         ) : (
           // MEDICATIONS DIRECTORY / FAVORITES VIEW
           <div className="p-3.5 space-y-3 pb-20">
+            {/* SRS 2025 Formulary & Vaccines Banner */}
+            {activeTab === 'drugs' && (
+              <div className="bg-gradient-to-r from-emerald-800 to-teal-800 text-white p-3 rounded-xl shadow-xs flex items-center justify-between gap-2 border border-emerald-600/40">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-white/10 rounded-lg shrink-0">
+                    <Syringe className="w-4 h-4 text-emerald-200" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold leading-tight">
+                      Listado Oficial SRS 2025 · El Salvador
+                    </div>
+                    <div className="text-[11px] text-emerald-100">
+                      AWaRe (Acceso/Precaución/Reserva), Códigos ATC y Vacunación
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsVaccinesModalOpen(true)}
+                  className="shrink-0 px-2.5 py-1.5 bg-white text-emerald-800 hover:bg-emerald-50 text-[11px] font-bold rounded-lg transition-colors shadow-xs"
+                >
+                  Ver Vacunas
+                </button>
+              </div>
+            )}
+
             {/* MDCalc Category Horizontal Filter Bar */}
             {activeTab === 'drugs' && (
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar -mx-3.5 px-3.5">
@@ -304,6 +343,12 @@ export default function App() {
         onClose={() => setIsPatientModalOpen(false)}
         patient={patient}
         onSave={setPatient}
+      />
+
+      {/* Official Vaccines 2025 Schedule Modal */}
+      <VaccinesModal
+        isOpen={isVaccinesModalOpen}
+        onClose={() => setIsVaccinesModalOpen(false)}
       />
     </PhoneContainer>
   );

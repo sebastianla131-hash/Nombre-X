@@ -5,9 +5,11 @@ export type DrugCategory =
   | 'Analgesia / AINEs'
   | 'Urgencias / Respiratorio'
   | 'Gastroenterología'
-  | 'Corticoides';
+  | 'Cardiovascular'
+  | 'Corticoides'
+  | 'Antídotos / Toxicología';
 
-export type RouteOfAdmin = 'oral' | 'iv' | 'im' | 'rectal' | 'inhalatoria';
+export type RouteOfAdmin = 'oral' | 'iv' | 'im' | 'rectal' | 'inhalatoria' | 'sublingual' | 'topica';
 
 export interface DrugConcentration {
   id: string;
@@ -48,6 +50,8 @@ export interface Medication {
   commercialNames: string[]; // e.g. ["Amoxil", "Clamoxyl", "Ardine"]
   category: DrugCategory;
   therapeuticClass: string; // e.g. "Aminopenicilina / Betalactámico"
+  atcCode?: string; // e.g. "J01CA04"
+  awareCategory?: 'Access' | 'Watch' | 'Reserve'; // WHO AWaRe classification
   badgeText?: string;
   shortDescription: string;
   availableRoutes: RouteOfAdmin[];

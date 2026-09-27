@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, Smartphone, Monitor, UserCheck, Star } from 'lucide-react';
+import { Search, X, Smartphone, Monitor, UserCheck, Star, Syringe } from 'lucide-react';
 import { PatientProfile } from '../types';
 
 interface HeaderProps {
@@ -11,6 +11,7 @@ interface HeaderProps {
   onTogglePhoneFrame: () => void;
   favoritesCount: number;
   onOpenFavorites: () => void;
+  onOpenVaccines?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,7 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
   isPhoneFrame,
   onTogglePhoneFrame,
   favoritesCount,
-  onOpenFavorites
+  onOpenFavorites,
+  onOpenVaccines
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-emerald-700 text-white shadow-md">
@@ -59,6 +61,19 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="font-semibold">{patient.weightKg} kg</span>
             <span className="text-emerald-200 text-[11px]">({patient.ageYears > 0 ? `${patient.ageYears}a` : `${patient.ageMonths}m`})</span>
           </button>
+
+          {/* Vaccines SRS 2025 shortcut */}
+          {onOpenVaccines && (
+            <button
+              onClick={onOpenVaccines}
+              title="Esquema Oficial de Vacunación 2025"
+              className="p-1.5 rounded-md text-emerald-100 hover:text-white hover:bg-emerald-800 transition-colors flex items-center gap-1"
+              aria-label="Vacunas 2025"
+            >
+              <Syringe className="w-4 h-4 text-emerald-200" />
+              <span className="hidden sm:inline text-xs font-semibold">Vacunas</span>
+            </button>
+          )}
 
           {/* Favorites shortcut */}
           <button

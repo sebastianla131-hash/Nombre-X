@@ -37,7 +37,27 @@ export const DrugCard: React.FC<DrugCardProps> = ({
             <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors truncate">
               {medication.name}
             </h3>
-            {medication.badgeText && (
+            {medication.atcCode && (
+              <span className="text-[10px] font-mono font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                ATC {medication.atcCode}
+              </span>
+            )}
+            {medication.awareCategory === 'Access' && (
+              <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-200 bg-emerald-100/90 dark:bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-300/60">
+                AWaRe: Acceso
+              </span>
+            )}
+            {medication.awareCategory === 'Watch' && (
+              <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950 px-1.5 py-0.5 rounded border border-amber-300/60">
+                AWaRe: Precaución
+              </span>
+            )}
+            {medication.awareCategory === 'Reserve' && (
+              <span className="text-[10px] font-bold text-rose-800 dark:text-rose-200 bg-rose-100/90 dark:bg-rose-950 px-1.5 py-0.5 rounded border border-rose-300/60">
+                AWaRe: Reserva
+              </span>
+            )}
+            {medication.badgeText && !medication.awareCategory && (
               <span className="text-[10px] font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200/50">
                 {medication.badgeText}
               </span>
