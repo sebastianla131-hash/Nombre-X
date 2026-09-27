@@ -2,6 +2,58 @@
  * Clinical calculation utilities
  */
 
+export interface RouteLabel {
+  abbr: string; // e.g. "VO", "IV", "IM", "SC", "VR", "INH", "SL", "Tópica"
+  full: string; // e.g. "Vía Oral", "Vía Intravenosa", "Vía Intramuscular"
+  formatted: string; // e.g. "VO (Vía Oral)", "IV (Vía Intravenosa)"
+}
+
+/**
+ * Normaliza y formatea la vía de administración médica estándar (VO, IV, IM, etc.)
+ */
+export function formatRouteLabel(route?: string): RouteLabel {
+  if (!route) {
+    return { abbr: 'VO', full: 'Vía Oral', formatted: 'VO (Vía Oral)' };
+  }
+  const clean = route.trim().toLowerCase();
+  if (clean === 'oral' || clean === 'vo') {
+    return { abbr: 'VO', full: 'Vía Oral', formatted: 'VO (Vía Oral)' };
+  }
+  if (
+    clean === 'iv' ||
+    clean === 'ev' ||
+    clean === 'intravenosa' ||
+    clean === 'endovenosa' ||
+    clean.includes('intraven') ||
+    clean.includes('endoven')
+  ) {
+    return { abbr: 'IV', full: 'Vía Intravenosa', formatted: 'IV (Vía Intravenosa)' };
+  }
+  if (clean === 'im' || clean === 'intramuscular' || clean.includes('intramusc')) {
+    return { abbr: 'IM', full: 'Vía Intramuscular', formatted: 'IM (Vía Intramuscular)' };
+  }
+  if (clean === 'sc' || clean === 'subcutanea' || clean === 'subcutánea' || clean.includes('subcutan')) {
+    return { abbr: 'SC', full: 'Vía Subcutánea', formatted: 'SC (Vía Subcutánea)' };
+  }
+  if (clean === 'rectal' || clean === 'vr') {
+    return { abbr: 'VR', full: 'Vía Rectal', formatted: 'VR (Vía Rectal)' };
+  }
+  if (clean === 'inhalatoria' || clean === 'inh' || clean.includes('inhal')) {
+    return { abbr: 'INH', full: 'Vía Inhalatoria', formatted: 'INH (Vía Inhalatoria)' };
+  }
+  if (clean === 'sublingual' || clean === 'sl') {
+    return { abbr: 'SL', full: 'Vía Sublingual', formatted: 'SL (Vía Sublingual)' };
+  }
+  if (clean === 'topica' || clean === 'tópica' || clean.includes('topic')) {
+    return { abbr: 'Tópica', full: 'Vía Tópica', formatted: 'Vía Tópica' };
+  }
+  return {
+    abbr: route.toUpperCase(),
+    full: `Vía ${route}`,
+    formatted: `${route.toUpperCase()} (Vía ${route})`
+  };
+}
+
 export interface DoseCalculationResult {
   singleDoseMg: number;
   singleDoseUnitQuantity: number; // in mL, drops, or tablets
@@ -18,6 +70,8 @@ export interface DoseCalculationResult {
   formattedPrescription: string;
   renalAdjustmentNote?: string;
   administrationTips: string[];
+  routeAbbr?: string;
+  routeFormatted?: string;
 }
 
 export function calculateMedicationDose(params: {
@@ -55,8 +109,11 @@ export function calculateMedicationDose(params: {
     standardBottleMl,
     maxDailyDoseMg,
     maxSingleDoseMg,
+    route = 'oral',
     instructionsNote
   } = params;
+
+  const routeInfo = formatRouteLabel(route);
 
   let calculatedSingleMg = 0;
   let calculatedDailyMg = 0;
@@ -127,6 +184,8 @@ export function calculateMedicationDose(params: {
   } else if (concentrationForm === 'drops') {
     const dropsCount = Math.round((calculatedSingleMg / mgPerMl) * 20);
     doseUnitStr = `${unitQuantity} mL (~${dropsCount} gotas / ${Math.round(calculatedSingleMg)} mg)`;
+  } else if (concentrationForm === 'inhaler') {
+    doseUnitStr = `${unitQuantity || 1} puff(s) (${Math.round(calculatedSingleMg)} mcg)`;
   } else {
     doseUnitStr = `${unitQuantity} mL (${Math.round(calculatedSingleMg)} mg)`;
   }
@@ -134,7 +193,8 @@ export function calculateMedicationDose(params: {
   const formattedPrescription = [
     `Rp. ${drugName.toUpperCase()}`,
     `Presentación: ${concentrationAmountMg} mg / ${concentrationVolumeMl} mL (${concentrationForm})`,
-    `Indicación: Administrar ${doseUnitStr} cada ${intervalHours} horas vía oral durante ${durationDaysStr}.`,
+    `Vía de Administración: ${routeInfo.formatted}`,
+    `Indicación: Administrar ${doseUnitStr} cada ${intervalHours} horas por ${routeInfo.formatted} durante ${durationDaysStr}.`,
     estimatedTotalVolumeMl && bottlesNeeded
       ? `Dispensar: ${bottlesNeeded} frasco(s) de ${standardBottleMl || 100} mL (volumen total estimado: ${estimatedTotalVolumeMl} mL).`
       : '',
@@ -166,7 +226,9 @@ export function calculateMedicationDose(params: {
     estimatedTotalVolumeMl,
     bottlesNeeded,
     formattedPrescription,
-    administrationTips: tips
+    administrationTips: tips,
+    routeAbbr: routeInfo.abbr,
+    routeFormatted: routeInfo.formatted
   };
 }
 
@@ -210,6 +272,103 @@ export function calculateCockcroftGault(params: {
   }
 
   return { crCl, stage, color };
+}
+
+export interface CKDEPI2021Result {
+  egfr: number; // in mL/min/1.73 m²
+  unindexedEgfr?: number; // in mL/min if BSA available
+  bsaM2?: number;
+  stage: string;
+  kdigoCategory: 'G1' | 'G2' | 'G3a' | 'G3b' | 'G4' | 'G5';
+  kdigoDescription: string;
+  color: string;
+}
+
+/**
+ * 2021 CKD-EPI Creatinine Equation (sin variable de raza)
+ * Ref: Inker LA et al., N Engl J Med 2021; 385:1737-1749.
+ * eGFR = 142 * min(Scr/kappa, 1)^alpha * max(Scr/kappa, 1)^-1.200 * 0.9938^Age * (1.012 if female)
+ */
+export function calculateCKDEPI2021(params: {
+  ageYears: number;
+  serumCreatinineMgDl: number;
+  gender: 'male' | 'female';
+  weightKg?: number;
+  heightCm?: number;
+}): CKDEPI2021Result {
+  const { ageYears, serumCreatinineMgDl, gender, weightKg, heightCm } = params;
+
+  if (!serumCreatinineMgDl || serumCreatinineMgDl <= 0 || !ageYears || ageYears <= 0) {
+    return {
+      egfr: 0,
+      stage: 'Datos incompletos',
+      kdigoCategory: 'G1',
+      kdigoDescription: 'Datos incompletos',
+      color: 'text-slate-500'
+    };
+  }
+
+  const kappa = gender === 'female' ? 0.7 : 0.9;
+  const alpha = gender === 'female' ? -0.241 : -0.302;
+  const femaleFactor = gender === 'female' ? 1.012 : 1.0;
+
+  const scrRatio = serumCreatinineMgDl / kappa;
+  const minPart = Math.pow(Math.min(scrRatio, 1.0), alpha);
+  const maxPart = Math.pow(Math.max(scrRatio, 1.0), -1.200);
+  const agePart = Math.pow(0.9938, ageYears);
+
+  const rawEgfr = 142 * minPart * maxPart * agePart * femaleFactor;
+  const egfr = Number(rawEgfr.toFixed(1));
+
+  let bsaM2: number | undefined;
+  let unindexedEgfr: number | undefined;
+
+  if (weightKg && heightCm && weightKg > 0 && heightCm > 0) {
+    bsaM2 = Number(Math.sqrt((weightKg * heightCm) / 3600).toFixed(2));
+    unindexedEgfr = Number(((egfr * bsaM2) / 1.73).toFixed(1));
+  }
+
+  let stage = 'G1: Filtración Glomerular Normal o Elevada (≥90 mL/min/1.73 m²)';
+  let kdigoCategory: 'G1' | 'G2' | 'G3a' | 'G3b' | 'G4' | 'G5' = 'G1';
+  let kdigoDescription = 'Filtración normal o hiperfiltración';
+  let color = 'text-emerald-600 dark:text-emerald-400';
+
+  if (egfr < 15) {
+    stage = 'G5: Falla Renal Terminal (<15 mL/min/1.73 m²)';
+    kdigoCategory = 'G5';
+    kdigoDescription = 'Falla renal terminal';
+    color = 'text-red-600 dark:text-red-400';
+  } else if (egfr < 30) {
+    stage = 'G4: Disminución Severa de la TFG (15-29 mL/min/1.73 m²)';
+    kdigoCategory = 'G4';
+    kdigoDescription = 'Disfunción renal severa';
+    color = 'text-red-500 dark:text-red-400';
+  } else if (egfr < 45) {
+    stage = 'G3b: Disminución Moderada a Severa (30-44 mL/min/1.73 m²)';
+    kdigoCategory = 'G3b';
+    kdigoDescription = 'Disfunción renal moderada a severa';
+    color = 'text-amber-600 dark:text-amber-400';
+  } else if (egfr < 60) {
+    stage = 'G3a: Disminución Ligera a Moderada (45-59 mL/min/1.73 m²)';
+    kdigoCategory = 'G3a';
+    kdigoDescription = 'Disfunción renal leve a moderada';
+    color = 'text-amber-500 dark:text-amber-400';
+  } else if (egfr < 90) {
+    stage = 'G2: Disminución Ligera de la TFG (60-89 mL/min/1.73 m²)';
+    kdigoCategory = 'G2';
+    kdigoDescription = 'Disfunción renal ligera';
+    color = 'text-teal-600 dark:text-teal-400';
+  }
+
+  return {
+    egfr,
+    unindexedEgfr,
+    bsaM2,
+    stage,
+    kdigoCategory,
+    kdigoDescription,
+    color
+  };
 }
 
 /**

@@ -5,7 +5,6 @@ import { GASTRO_MEDICATIONS } from './gastro';
 import { RESPIRATORY_EMERGENCY_MEDICATIONS } from './respiratory_emergency';
 import { NEUROLOGY_ANTIDOTES_MEDICATIONS } from './neurology_antidotes';
 import { CARDIOVASCULAR_MEDICATIONS } from './cardiovascular';
-export { SRS_VACCINES, type VaccineItem } from './vaccines';
 
 /**
  * Listado Oficial Integrado de Medicamentos 2025

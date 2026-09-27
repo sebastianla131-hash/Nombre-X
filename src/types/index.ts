@@ -75,6 +75,21 @@ export interface Medication {
   // Reconstitution and storage
   reconstitutionNotes?: string;
   storageNotes?: string;
+
+  // Pregnancy & Lactation Safety Guidance
+  pregnancyGuidance?: PregnancyGuidance;
+}
+
+export type PregnancySafetyStatus = 'safe' | 'caution' | 'contraindicated';
+
+export interface PregnancyGuidance {
+  category: 'A' | 'B' | 'C' | 'D' | 'X';
+  status: PregnancySafetyStatus;
+  statusLabel: string; // e.g. "Compatible / Seguro", "Usar con Precaución", "Contraindicado"
+  summary: string;
+  contraindicatedInTrimester?: (1 | 2 | 3)[];
+  clinicalAlternative?: string;
+  fetalRisks?: string[];
 }
 
 export interface PatientProfile {
@@ -83,5 +98,7 @@ export interface PatientProfile {
   ageYears: number;
   ageMonths: number;
   gender: 'male' | 'female';
+  isPregnant?: boolean; // Solo visible y editable si gender === 'female'
+  pregnancyTrimester?: 1 | 2 | 3; // Trimestre gestacional
   serumCreatinineMgDl?: number;
 }

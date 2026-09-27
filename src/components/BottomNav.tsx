@@ -34,7 +34,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               onClick={() => onTabChange(tab.id)}
               className={`flex flex-col items-center justify-center h-full min-h-[44px] transition-all relative ${
                 isActive
-                  ? 'text-emerald-700 dark:text-emerald-400 font-semibold'
+                  ? 'text-blue-700 dark:text-blue-400 font-semibold'
                   : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-normal'
               }`}
             >
@@ -52,13 +52,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               </div>
               <span
                 className={`text-[10px] tracking-tight mt-0.5 whitespace-nowrap ${
-                  isActive ? 'font-bold text-emerald-700 dark:text-emerald-400' : ''
+                  isActive ? 'font-bold text-blue-700 dark:text-blue-400' : ''
                 }`}
               >
                 {tab.label}
               </span>
               {isActive && (
-                <span className="w-6 h-0.5 bg-emerald-700 dark:bg-emerald-400 rounded-full absolute bottom-1" />
+                <span className="w-6 h-0.5 bg-blue-700 dark:bg-blue-400 rounded-full absolute bottom-1" />
               )}
             </button>
           );

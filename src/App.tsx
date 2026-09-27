@@ -15,8 +15,7 @@ import {
   Droplets,
   Calculator,
   ChevronRight,
-  Info,
-  Syringe
+  Info
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { BottomNav, TabType } from './components/BottomNav';
@@ -25,9 +24,9 @@ import { DrugDetailCalculator } from './components/DrugDetailCalculator';
 import { RenalAdjustmentCalculator } from './components/RenalAdjustmentCalculator';
 import { InfusionCalculator } from './components/InfusionCalculator';
 import { CustomCalculator } from './components/CustomCalculator';
-import { PatientProfileModal } from './components/PatientProfileModal';
-import { VaccinesModal } from './components/VaccinesModal';
 import { PhoneContainer } from './components/PhoneContainer';
+import { HomeScreen } from './components/HomeScreen';
+import { PatientProfileView } from './components/PatientProfileView';
 import { MEDICATIONS } from './data/medications';
 import { Medication, DrugCategory, PatientProfile } from './types';
 
@@ -43,15 +42,17 @@ const CATEGORIES: DrugCategory[] = [
   'Antídotos / Toxicología'
 ];
 
+type ScreenMode = 'home' | 'patient_profile' | 'main';
+
 export default function App() {
-  // Navigation & View state
+  // Screen Mode: 'home' (página de inicio) | 'patient_profile' (datos del paciente e IMC) | 'main' (calculadoras)
+  const [currentScreen, setCurrentScreen] = useState<ScreenMode>('home');
+
+  // Navigation & View state inside main
   const [activeTab, setActiveTab] = useState<TabType>('drugs');
   const [selectedDrug, setSelectedDrug] = useState<Medication | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<DrugCategory>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isPatientModalOpen, setIsPatientModalOpen] = useState<boolean>(false);
-  const [isVaccinesModalOpen, setIsVaccinesModalOpen] = useState<boolean>(false);
-  const [isPhoneFrame, setIsPhoneFrame] = useState<boolean>(true);
 
   // Persistent Favorites & Patient Profile
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -162,8 +163,35 @@ export default function App() {
     setSelectedDrug(drug);
   };
 
+  // 1. PÁGINA DE INICIO (Home Screen) con únicamente un acceso en la mitad de la página
+  if (currentScreen === 'home') {
+    return (
+      <PhoneContainer>
+        <HomeScreen onOpenPatientData={() => setCurrentScreen('patient_profile')} />
+      </PhoneContainer>
+    );
+  }
+
+  // 2. VISTA DE DATOS DEL PACIENTE Y CÁLCULO DE IMC
+  if (currentScreen === 'patient_profile') {
+    return (
+      <PhoneContainer>
+        <PatientProfileView
+          patient={patient}
+          onSave={setPatient}
+          onBackToHome={() => setCurrentScreen('home')}
+          onContinueToCalculators={(updatedPatient) => {
+            setPatient(updatedPatient);
+            setCurrentScreen('main');
+          }}
+        />
+      </PhoneContainer>
+    );
+  }
+
+  // 3. VISTA PRINCIPAL: FORMULARIO Y CALCULADORAS CLÍNICAS
   return (
-    <PhoneContainer isPhoneFrame={isPhoneFrame}>
+    <PhoneContainer>
       {/* MDCalc Header */}
       <Header
         searchQuery={searchQuery}
@@ -173,15 +201,13 @@ export default function App() {
           if (activeTab !== 'drugs' && activeTab !== 'favorites') setActiveTab('drugs');
         }}
         patient={patient}
-        onOpenPatientModal={() => setIsPatientModalOpen(true)}
-        isPhoneFrame={isPhoneFrame}
-        onTogglePhoneFrame={() => setIsPhoneFrame(!isPhoneFrame)}
+        onOpenPatientModal={() => setCurrentScreen('patient_profile')}
         favoritesCount={favorites.length}
         onOpenFavorites={() => {
           setSelectedDrug(null);
           setActiveTab('favorites');
         }}
-        onOpenVaccines={() => setIsVaccinesModalOpen(true)}
+        onBackToHome={() => setCurrentScreen('home')}
       />
 
       {/* Main Content Area */}
@@ -212,28 +238,22 @@ export default function App() {
         ) : (
           // MEDICATIONS DIRECTORY / FAVORITES VIEW
           <div className="p-3.5 space-y-3 pb-20">
-            {/* SRS 2025 Formulary & Vaccines Banner */}
+            {/* SRS 2025 Formulary Banner */}
             {activeTab === 'drugs' && (
-              <div className="bg-gradient-to-r from-emerald-800 to-teal-800 text-white p-3 rounded-xl shadow-xs flex items-center justify-between gap-2 border border-emerald-600/40">
+              <div className="bg-gradient-to-r from-blue-800 to-slate-800 text-white p-3 rounded-xl shadow-xs flex items-center justify-between gap-2 border border-blue-700/40">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 bg-white/10 rounded-lg shrink-0">
-                    <Syringe className="w-4 h-4 text-emerald-200" />
+                    <Pill className="w-4 h-4 text-blue-200" />
                   </div>
                   <div>
                     <div className="text-xs font-bold leading-tight">
                       Listado Oficial SRS 2025 · El Salvador
                     </div>
-                    <div className="text-[11px] text-emerald-100">
-                      AWaRe (Acceso/Precaución/Reserva), Códigos ATC y Vacunación
+                    <div className="text-[11px] text-blue-100">
+                      Clasificación OMS AWaRe (Acceso / Precaución / Reserva) y Códigos ATC
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsVaccinesModalOpen(true)}
-                  className="shrink-0 px-2.5 py-1.5 bg-white text-emerald-800 hover:bg-emerald-50 text-[11px] font-bold rounded-lg transition-colors shadow-xs"
-                >
-                  Ver Vacunas
-                </button>
               </div>
             )}
 
@@ -248,7 +268,7 @@ export default function App() {
                       onClick={() => setSelectedCategory(cat)}
                       className={`px-3 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all border ${
                         isSelected
-                          ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                          ? 'bg-blue-700 text-white border-blue-700 shadow-xs'
                           : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                       }`}
                     >
@@ -273,6 +293,29 @@ export default function App() {
               </span>
             </div>
 
+            {/* Banner de Estado Obstétrico si la paciente está en embarazo */}
+            {patient.gender === 'female' && patient.isPregnant && (
+              <div className="p-3 bg-pink-50/90 dark:bg-pink-950/40 rounded-xl border border-pink-200 dark:border-pink-800 text-xs text-pink-950 dark:text-pink-100 flex items-start gap-2.5 shadow-xs">
+                <span className="text-xl">🤰</span>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">
+                      Modo Obstétrico Activo ({patient.pregnancyTrimester ? `${patient.pregnancyTrimester}º Trimestre` : 'Embarazo'})
+                    </span>
+                    <button
+                      onClick={() => setCurrentScreen('patient_profile')}
+                      className="text-[11px] font-semibold text-pink-700 dark:text-pink-300 underline hover:text-pink-900 cursor-pointer"
+                    >
+                      Editar
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-pink-800 dark:text-pink-200 mt-0.5 leading-relaxed">
+                    Evaluando seguridad teratogénica y fetal (FDA/Briggs). Los fármacos contraindicados se marcan en rojo para evitar riesgos perinatales.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Drug Cards List */}
             {filteredMedications.length > 0 ? (
               <div className="space-y-2.5">
@@ -284,6 +327,8 @@ export default function App() {
                     isFavorite={favorites.includes(med.id)}
                     onToggleFavorite={(e) => toggleFavorite(med.id, e)}
                     patientWeightKg={patient.weightKg}
+                    isPregnant={patient.gender === 'female' && !!patient.isPregnant}
+                    pregnancyTrimester={patient.pregnancyTrimester}
                   />
                 ))}
               </div>
@@ -342,20 +387,6 @@ export default function App() {
           setSelectedDrug(null);
         }}
         favoritesCount={favorites.length}
-      />
-
-      {/* Patient Profile Edit Modal */}
-      <PatientProfileModal
-        isOpen={isPatientModalOpen}
-        onClose={() => setIsPatientModalOpen(false)}
-        patient={patient}
-        onSave={setPatient}
-      />
-
-      {/* Official Vaccines 2025 Schedule Modal */}
-      <VaccinesModal
-        isOpen={isVaccinesModalOpen}
-        onClose={() => setIsVaccinesModalOpen(false)}
       />
     </PhoneContainer>
   );
