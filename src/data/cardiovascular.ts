@@ -482,5 +482,161 @@ export const CARDIOVASCULAR_MEDICATIONS: Medication[] = [
         summary: 'Sulfato ferroso 125 mg/mL líquidos orales y 300 mg sólidos orales.'
       }
     ]
+  },
+  {
+    id: 'amlodipina',
+    name: 'Amlodipina',
+    commercialNames: ['Norvasc', 'Amlodipino', 'Amlopress'],
+    category: 'Cardiovascular',
+    atcCode: 'C08CA01',
+    therapeuticClass: 'Calcioantagonista Dihidropiridínico Antihipertensivo (SRS 2025)',
+    badgeText: 'SRS 2025 · Calcioantagonista',
+    shortDescription: 'Bloqueador de canales de calcio dihidropiridínico de larga acción para hipertensión arterial y angina de pecho.',
+    availableRoutes: ['oral'],
+    concentrations: [
+      {
+        id: 'amlo-comp-5mg',
+        name: 'Sólidos Orales 5 mg Comprimidos (SRS 2025)',
+        amountMg: 5,
+        volumeMl: 1,
+        form: 'tablets',
+        unit: 'comprimido',
+        notes: 'Presentación oficial SRS 2025'
+      },
+      {
+        id: 'amlo-comp-10mg',
+        name: 'Sólidos Orales 10 mg Comprimidos (SRS 2025)',
+        amountMg: 10,
+        volumeMl: 1,
+        form: 'tablets',
+        unit: 'comprimido',
+        notes: 'Dosis máxima diaria en adultos'
+      }
+    ],
+    indications: [
+      {
+        id: 'amlo-ind-hta-adult',
+        name: 'Hipertensión Arterial Esencial Adultos',
+        fixedAdultDoseMg: 5,
+        frequencyPerDay: 1,
+        intervalHours: 24,
+        durationDays: 'Crónico',
+        maxDailyDoseMg: 10,
+        maxSingleDoseMg: 10,
+        description: '5 mg vía oral una vez al día; titular a 10 mg/día tras 2-4 semanas si la respuesta tensional es insuficiente.'
+      },
+      {
+        id: 'amlo-ind-hta-peds',
+        name: 'Hipertensión Arterial Pediátrica (≥ 6 años)',
+        recommendedDoseMgPerKgPerDay: 0.1,
+        minDoseMgPerKgPerDay: 0.05,
+        maxDoseMgPerKgPerDay: 0.2,
+        fixedAdultDoseMg: 5,
+        frequencyPerDay: 1,
+        intervalHours: 24,
+        durationDays: 'Crónico',
+        maxDailyDoseMg: 10,
+        maxSingleDoseMg: 5,
+        description: '0.05 a 0.1 mg/kg/día una vez al día (dosis inicial máxima 2.5 a 5 mg/día; titular hasta máx 0.2 mg/kg/día o 10 mg/día).'
+      }
+    ],
+    whenToUse: [
+      'Hipertensión arterial primaria en monoterapia o combinada (excelente sinergia con IECA/ARA-II).',
+      'Cardiopatía isquémica y angina vasoespástica (de Prinzmetal).',
+      'Pacientes ancianos con hipertensión sistólica aislada.'
+    ],
+    pearlsAndPitfalls: [
+      'Edema maleolar bilateral periférico dependiente de la dosis por vasodilatación arteriolar precapilar (no responde a diuréticos; mejora combinándolo con IECA o ARA-II).',
+      'Vida media prolongada (~35-50 horas): permite posología cómoda de una sola toma al día.',
+      'Cefalea y rubefacción facial transitoria al inicio del tratamiento.'
+    ],
+    monitoringAndSideEffects: ['Presión arterial, presencia de edema periférico, frecuencia cardíaca.'],
+    evidenceAndSources: [
+      {
+        title: 'Listado Oficial SRS 2025',
+        source: 'SRS El Salvador C08CA01',
+        summary: 'Amlodipina 5 mg y 10 mg sólidos orales.'
+      }
+    ]
+  },
+  {
+    id: 'losartan',
+    name: 'Losartán',
+    commercialNames: ['Cozaar', 'Losartán Potásico', 'Corazem'],
+    category: 'Cardiovascular',
+    atcCode: 'C09CA01',
+    therapeuticClass: 'Antagonista de Receptores de Angiotensina II (ARA-II) Antihipertensivo (SRS 2025)',
+    badgeText: 'SRS 2025 · ARA-II Primera Línea',
+    shortDescription: 'ARA-II para hipertensión arterial, protección renal en nefropatía diabética e intolerancia a IECAs por tos o angioedema.',
+    availableRoutes: ['oral'],
+    concentrations: [
+      {
+        id: 'losar-comp-50mg',
+        name: 'Sólidos Orales 50 mg Comprimidos (SRS 2025)',
+        amountMg: 50,
+        volumeMl: 1,
+        form: 'tablets',
+        unit: 'comprimido',
+        notes: 'Presentación oficial SRS 2025 ranurada'
+      },
+      {
+        id: 'losar-comp-100mg',
+        name: 'Sólidos Orales 100 mg Comprimidos (SRS 2025)',
+        amountMg: 100,
+        volumeMl: 1,
+        form: 'tablets',
+        unit: 'comprimido',
+        notes: 'Dosis objetivo en insuficiencia cardíaca y nefropatía diabética'
+      }
+    ],
+    indications: [
+      {
+        id: 'losar-ind-hta-adult',
+        name: 'Hipertensión Arterial / Nefroprotección Diabética Adultos',
+        fixedAdultDoseMg: 50,
+        frequencyPerDay: 1,
+        intervalHours: 24,
+        durationDays: 'Crónico',
+        maxDailyDoseMg: 100,
+        maxSingleDoseMg: 100,
+        description: '50 mg vía oral una vez al día (o fraccionado en 2 tomas); titular hasta 100 mg/día si no se alcanza la meta de presión arterial.'
+      },
+      {
+        id: 'losar-ind-hta-peds',
+        name: 'Hipertensión Arterial Pediátrica (≥ 6 años)',
+        recommendedDoseMgPerKgPerDay: 0.7,
+        minDoseMgPerKgPerDay: 0.5,
+        maxDoseMgPerKgPerDay: 1.4,
+        fixedAdultDoseMg: 50,
+        frequencyPerDay: 1,
+        intervalHours: 24,
+        durationDays: 'Crónico',
+        maxDailyDoseMg: 100,
+        maxSingleDoseMg: 50,
+        description: '0.7 mg/kg vía oral una vez al día (hasta un máximo inicial de 50 mg/día; titular hasta 1.4 mg/kg/día o máx 100 mg/día).'
+      }
+    ],
+    whenToUse: [
+      'Hipertensión arterial esencial, especialmente en pacientes que presentan tos por Enalapril u otros IECAs.',
+      'Reducción de progresión de nefropatía en diabetes mellitus tipo 2 con proteinuria (estudio RENAAL).',
+      'Insuficiencia cardíaca en pacientes que no toleran IECAs.'
+    ],
+    pearlsAndPitfalls: [
+      'CONTRAINDICADO ABSOLUTO en el embarazo (teratogénico: fallo renal fetal, oligohidramnios, hipoplasia pulmonar).',
+      'No combinar simultáneamente con un IECA (Enalapril) debido a mayor riesgo de hiperpotasemia, hipotensión y fallo renal agudo sin beneficio clínico adicional.',
+      'Efecto uricosúrico leve único entre los ARA-II, favorable en pacientes con gota o hiperuricemia.'
+    ],
+    monitoringAndSideEffects: ['Presión arterial, creatinina sérica y potasio sérico periódicamente.'],
+    evidenceAndSources: [
+      {
+        title: 'Listado Oficial SRS 2025',
+        source: 'SRS El Salvador C09CA01',
+        summary: 'Losartán potásico 50 mg y 100 mg sólidos orales.'
+      }
+    ],
+    renalAdjustments: [
+      { crClThreshold: 'ClCr > 30 mL/min', adjustmentText: '100% de la dosis estándar', cautionLevel: 'normal' },
+      { crClThreshold: 'ClCr < 30 mL/min', adjustmentText: 'Iniciar con 25 mg/día y titular vigilando el potasio sérico', cautionLevel: 'moderate' }
+    ]
   }
 ];

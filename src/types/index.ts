@@ -1,11 +1,14 @@
 export type DrugCategory =
   | 'Todos'
-  | 'Pediátricos'
+  | 'Favoritos'
   | 'Antibióticos'
+  | 'Analgésicos'
+  | 'Antihipertensivos'
+  | 'Pediátricos'
   | 'Analgesia / AINEs'
+  | 'Cardiovascular'
   | 'Urgencias / Respiratorio'
   | 'Gastroenterología'
-  | 'Cardiovascular'
   | 'Corticoides'
   | 'Antídotos / Toxicología';
 

@@ -1,7 +1,74 @@
 import React from 'react';
-import { Search, X, UserCheck, Star, Home } from 'lucide-react';
-import { PatientProfile } from '../types';
+import {
+  Search,
+  X,
+  UserCheck,
+  Star,
+  Shield,
+  Zap,
+  HeartPulse,
+  Pill,
+  Wind,
+  Stethoscope,
+  Activity,
+  AlertTriangle
+} from 'lucide-react';
+import { PatientProfile, DrugCategory } from '../types';
 import { MedFormulaLogo } from './MedFormulaLogo';
+
+export interface CategoryItem {
+  id: DrugCategory;
+  label: string;
+  icon: React.ReactNode;
+}
+
+export const HEADER_CATEGORIES: CategoryItem[] = [
+  {
+    id: 'Favoritos',
+    label: 'Favoritos',
+    icon: <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+  },
+  {
+    id: 'Antibióticos',
+    label: 'Antibióticos',
+    icon: <Shield className="w-3.5 h-3.5 text-emerald-300" />
+  },
+  {
+    id: 'Analgésicos',
+    label: 'Analgésicos',
+    icon: <Zap className="w-3.5 h-3.5 text-amber-300" />
+  },
+  {
+    id: 'Antihipertensivos',
+    label: 'Antihipertensivos',
+    icon: <HeartPulse className="w-3.5 h-3.5 text-rose-300" />
+  },
+  {
+    id: 'Todos',
+    label: 'Todos',
+    icon: <Pill className="w-3.5 h-3.5 text-blue-200" />
+  },
+  {
+    id: 'Urgencias / Respiratorio',
+    label: 'Respiratorio / Urgencias',
+    icon: <Wind className="w-3.5 h-3.5 text-teal-300" />
+  },
+  {
+    id: 'Gastroenterología',
+    label: 'Gastroenterología',
+    icon: <Stethoscope className="w-3.5 h-3.5 text-indigo-300" />
+  },
+  {
+    id: 'Corticoides',
+    label: 'Corticoides',
+    icon: <Activity className="w-3.5 h-3.5 text-purple-300" />
+  },
+  {
+    id: 'Antídotos / Toxicología',
+    label: 'Antídotos',
+    icon: <AlertTriangle className="w-3.5 h-3.5 text-orange-300" />
+  }
+];
 
 interface HeaderProps {
   searchQuery: string;
@@ -11,6 +78,9 @@ interface HeaderProps {
   favoritesCount: number;
   onOpenFavorites: () => void;
   onBackToHome?: () => void;
+  selectedCategory?: DrugCategory;
+  onSelectCategory?: (cat: DrugCategory) => void;
+  showCategories?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,7 +90,10 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPatientModal,
   favoritesCount,
   onOpenFavorites,
-  onBackToHome
+  onBackToHome,
+  selectedCategory = 'Todos',
+  onSelectCategory,
+  showCategories = true
 }) => {
   const patientBmi =
     patient.heightCm && patient.heightCm > 0
@@ -106,7 +179,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenFavorites}
             title="Ver calculadoras favoritas"
-            className="p-1.5 rounded-md text-blue-100 hover:text-white hover:bg-blue-900 transition-colors relative"
+            className="p-1.5 rounded-md text-blue-100 hover:text-white hover:bg-blue-900 transition-colors relative cursor-pointer"
             aria-label="Favoritos"
           >
             <Star className="w-4 h-4 fill-amber-300 text-amber-300" />
@@ -119,7 +192,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Instant Search Bar */}
+      {/* Persistent Instant Search Bar (Enfermedad, Medicamento o Clase) */}
       <div className="p-2.5 bg-blue-900">
         <div className="relative flex items-center">
           <Search className="w-4 h-4 text-blue-200 absolute left-3 pointer-events-none" />
@@ -127,13 +200,13 @@ export const Header: React.FC<HeaderProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Buscar medicamento, indicación o clase (ej. Amoxi, Otitis, Paracetamol)..."
-            className="w-full pl-9 pr-8 py-2 text-xs md:text-sm bg-white text-slate-900 rounded-md placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 font-medium shadow-xs transition-all"
+            placeholder="Buscar por enfermedad, medicamento o clase (ej. Neumonía, Amoxicilina, Analgésico)..."
+            className="w-full pl-9 pr-8 py-2 text-xs md:text-sm bg-white text-slate-900 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 font-medium shadow-xs transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-2.5 text-slate-400 hover:text-slate-600 p-0.5"
+              className="absolute right-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
               aria-label="Borrar búsqueda"
             >
               <X className="w-3.5 h-3.5" />
@@ -141,6 +214,43 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {/* Opciones de tipo de medicamento justo debajo del buscador: Favoritos, Antibióticos, Analgésicos, Antihipertensivos, etc. */}
+      {showCategories && onSelectCategory && (
+        <div className="px-2.5 pb-2 pt-0.5 bg-blue-900/95 border-t border-blue-800/80">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-0.5 px-0.5">
+            {HEADER_CATEGORIES.map((cat) => {
+              const isSelected = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => onSelectCategory(cat.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border cursor-pointer shrink-0 ${
+                    isSelected
+                      ? 'bg-white text-blue-950 border-white shadow-sm ring-2 ring-blue-300'
+                      : 'bg-blue-950/70 text-blue-100 hover:text-white hover:bg-blue-800/80 border-blue-700/60'
+                  }`}
+                >
+                  {cat.icon}
+                  <span>{cat.label}</span>
+                  {cat.id === 'Favoritos' && favoritesCount > 0 && (
+                    <span
+                      className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                        isSelected
+                          ? 'bg-blue-900 text-white'
+                          : 'bg-amber-400 text-slate-900'
+                      }`}
+                    >
+                      {favoritesCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </header>
   );
 };
