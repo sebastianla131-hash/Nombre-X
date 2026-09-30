@@ -1,13 +1,19 @@
 // src/store/patientStore.ts
-// Medical-grade global patient store using Zustand with validation & persistence
+// Medical-grade global patient store using Zustand with validation, persistence & BMI calculation
 
 import { create } from 'zustand';
 import { PatientProfile, CLINICAL_LIMITS } from '../types/clinical';
+import { calculateBMI } from '../utils/clinicalEngine';
 
 export interface PatientState {
   patient: PatientProfile;
   errors: string[];
+  bmi: number | null;
+  bmiCategory: string;
+  bmiColor: string;
   setPatient: (patient: PatientProfile) => void;
+  setWeight: (weightKg: number) => void;
+  setHeight: (heightCm: number) => void;
   updateField: <K extends keyof PatientProfile>(field: K, value: PatientProfile[K]) => void;
   resetPatient: () => void;
   validate: () => boolean;
@@ -94,35 +100,70 @@ export function validatePatientProfile(patient: PatientProfile): string[] {
   return errors;
 }
 
+const initialPatient = getInitialPatient();
+const initialBmi = calculateBMI(initialPatient.weightKg, initialPatient.heightCm);
+
 export const usePatientStore = create<PatientState>((set, get) => ({
-  patient: getInitialPatient(),
+  patient: initialPatient,
   errors: [],
+  bmi: initialBmi.bmi,
+  bmiCategory: initialBmi.category,
+  bmiColor: initialBmi.color,
 
   setPatient: (newPatient: PatientProfile) => {
     const sanitized = sanitizePatient(newPatient);
     const errors = validatePatientProfile(sanitized);
+    const bmiData = calculateBMI(sanitized.weightKg, sanitized.heightCm);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
     } catch {}
-    set({ patient: sanitized, errors });
+    set({
+      patient: sanitized,
+      errors,
+      bmi: bmiData.bmi,
+      bmiCategory: bmiData.category,
+      bmiColor: bmiData.color,
+    });
   },
 
-  updateField: <K extends keyof PatientProfile>(field: K, value: PatientProfile[K]) => {
+  setWeight: (weightKg: number) => {
+    get().updateField('weightKg', weightKg);
+  },
+
+  setHeight: (heightCm: number) => {
+    get().updateField('heightCm', heightCm);
+  },
+
+  updateField: (field, value) => {
     const current = get().patient;
     const updated = { ...current, [field]: value };
     const sanitized = sanitizePatient(updated);
     const errors = validatePatientProfile(sanitized);
+    const bmiData = calculateBMI(sanitized.weightKg, sanitized.heightCm);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
     } catch {}
-    set({ patient: sanitized, errors });
+    set({
+      patient: sanitized,
+      errors,
+      bmi: bmiData.bmi,
+      bmiCategory: bmiData.category,
+      bmiColor: bmiData.color,
+    });
   },
 
   resetPatient: () => {
+    const bmiData = calculateBMI(DEFAULT_PATIENT.weightKg, DEFAULT_PATIENT.heightCm);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_PATIENT));
     } catch {}
-    set({ patient: DEFAULT_PATIENT, errors: [] });
+    set({
+      patient: DEFAULT_PATIENT,
+      errors: [],
+      bmi: bmiData.bmi,
+      bmiCategory: bmiData.category,
+      bmiColor: bmiData.color,
+    });
   },
 
   validate: () => {

@@ -1,4 +1,5 @@
 import { Medication } from '../types';
+import { DRUG_DB, drugToMedication } from './clinicalDatabase';
 import { ANTIBIOTICS_MEDICATIONS } from './antibiotics';
 import { ANALGESICS_MEDICATIONS } from './analgesics';
 import { GASTRO_MEDICATIONS } from './gastro';
@@ -8,12 +9,13 @@ import { CARDIOVASCULAR_MEDICATIONS } from './cardiovascular';
 import { ENDOCRINOLOGY_MEDICATIONS } from './endocrinology';
 import { GYNECOLOGY_MEDICATIONS } from './gynecology';
 
-/**
- * Listado Oficial Integrado de Medicamentos 2025
- * Superintendencia de Regulación Sanitaria (SRS) - Gobierno de El Salvador
- * Incluye clasificación OMS AWaRe (Acceso, Precaución, Reserva), códigos ATC y dosis pediátrico/adulto.
- */
-export const MEDICATIONS: Medication[] = [
+export * from './clinicalDatabase';
+
+const CLINICAL_DB_MEDICATIONS = DRUG_DB.map(drugToMedication);
+
+// Merge without duplicate IDs
+const existingIds = new Set(CLINICAL_DB_MEDICATIONS.map(m => m.id));
+const otherMeds = [
   ...ANTIBIOTICS_MEDICATIONS,
   ...ANALGESICS_MEDICATIONS,
   ...GASTRO_MEDICATIONS,
@@ -22,6 +24,16 @@ export const MEDICATIONS: Medication[] = [
   ...CARDIOVASCULAR_MEDICATIONS,
   ...ENDOCRINOLOGY_MEDICATIONS,
   ...GYNECOLOGY_MEDICATIONS
+].filter(m => !existingIds.has(m.id));
+
+/**
+ * Listado Oficial Integrado de Medicamentos 2025
+ * Superintendencia de Regulación Sanitaria (SRS) - Gobierno de El Salvador
+ * Incluye clasificación OMS AWaRe (Acceso, Precaución, Reserva), códigos ATC y dosis pediátrico/adulto.
+ */
+export const MEDICATIONS: Medication[] = [
+  ...CLINICAL_DB_MEDICATIONS,
+  ...otherMeds
 ];
 
 export interface InfusionProtocol {

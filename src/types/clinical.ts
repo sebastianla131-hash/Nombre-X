@@ -195,3 +195,94 @@ export interface CriticalHardStop {
   fetalRisks?: string[];
   clinicalAlternative?: string;
 }
+
+// Clinical Database schema types (SRS 2025 / WHO AWaRe)
+export interface DrugAlert {
+  type: 'hepatic' | 'obstetric' | 'renal' | 'blackbox' | 'allergy';
+  condition: (p: PatientProfile) => boolean;
+  message: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+}
+
+export interface DrugIndicationDB {
+  name: string;
+  doseMgPerKgDay: number;
+  maxDailyDoseMg: number;
+  maxSingleDoseMg: number;
+  defaultIntervals: number[];
+  defaultDurations: number[];
+}
+
+export interface DrugConcentrationDB {
+  label: string;
+  mg: number;
+  ml: number;
+  form: 'suspension' | 'drops' | 'tablet' | 'ampoule';
+}
+
+export interface Drug {
+  id: string;
+  genericName: string;
+  commercialNames: string[];
+  atc: string;
+  group: string;
+  aware: 'Access' | 'Watch' | 'Reserve';
+  routes: string[];
+  indications: DrugIndicationDB[];
+  concentrations: DrugConcentrationDB[];
+  alerts: DrugAlert[];
+}
+
+// Body Weight Analysis (IBW / ABW for Obesity)
+export interface BodyWeightAnalysis {
+  actualWeightKg: number;
+  ibwKg: number | null;
+  abwKg: number | null;
+  bmi: number | null;
+  bmiCategory: string;
+  isObese: boolean;
+  recommendedWeightKg: number;
+}
+
+// Crash Cart (Code Blue Emergency Resuscitation)
+export interface CrashCartItem {
+  id: string;
+  category: 'resuscitation' | 'antiarrhythmic' | 'cardiovascular' | 'defibrillation' | 'airway' | 'fluids';
+  name: string;
+  indication: string;
+  doseFormula: string;
+  calculatedDose: string;
+  concentrationOrSpec: string;
+  volumeOrJoulesToDeliver: string;
+  routeOrAction: string;
+  maxLimit?: string;
+  notes?: string;
+  isDefibrillation?: boolean;
+}
+
+// One-Tap Presets / Protocols (Multi-Drug Combos)
+export interface ClinicalPresetItem {
+  drugId: string;
+  drugName: string;
+  indicationName: string;
+  concentrationName: string;
+  amountMg?: number;
+  volumeMl?: number;
+  form?: 'suspension' | 'tablets' | 'drops' | 'vial' | 'inhaler';
+  doseMgPerKgDay: number;
+  frequencyPerDay: number;
+  intervalHours: number;
+  durationDays: number;
+  route: RouteOfAdmin;
+  instructions?: string;
+}
+
+export interface ClinicalPreset {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  color: string;
+  items: ClinicalPresetItem[];
+  isCustom?: boolean;
+}

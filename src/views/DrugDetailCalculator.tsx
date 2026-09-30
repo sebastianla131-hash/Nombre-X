@@ -12,7 +12,13 @@ import {
   evaluateObstetricSafety,
   evaluateRenalStatus,
   evaluateDoseSpectrum,
+  analyzeBodyWeight,
 } from '../utils/clinicalEngine';
+import {
+  generateHisPrescription,
+  generatePatientPrescription,
+  generateEhrPrescription,
+} from '../utils/prescriptionGenerator';
 import { SegmentedControl, SegmentedControlOption } from '../components/ui/SegmentedControl';
 import { DoseThermometer } from '../components/ui/DoseThermometer';
 import { CriticalAlertModal } from '../components/ui/CriticalAlertModal';
@@ -34,6 +40,8 @@ import {
   Droplets,
   Droplet,
   Activity,
+  User,
+  Scale,
 } from 'lucide-react';
 
 interface DrugDetailCalculatorProps {
@@ -84,7 +92,18 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
 
   // Accordion & Copy state
   const [showPearls, setShowPearls] = useState<boolean>(false);
-  const [copiedRp, setCopiedRp] = useState<boolean>(false);
+  const [copiedHis, setCopiedHis] = useState<boolean>(false);
+  const [copiedPatient, setCopiedPatient] = useState<boolean>(false);
+  const [useAdjustedWeight, setUseAdjustedWeight] = useState<boolean>(false);
+
+  // Obesity Analysis (IBW / ABW Devine & Robinson)
+  const weightAnalysis = useMemo(() => {
+    return analyzeBodyWeight(patient, useAdjustedWeight);
+  }, [patient, useAdjustedWeight]);
+
+  const effectiveWeightKg = useAdjustedWeight && weightAnalysis.abwKg
+    ? weightAnalysis.abwKg
+    : patient.weightKg;
 
   // 2. Clinical Safety Evaluations
   const obstetricSafety = useMemo(() => {
@@ -106,10 +125,10 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
     return evaluateRenalStatus(patient, medication);
   }, [patient, medication]);
 
-  // 3. Clinical Engine Calculations (Pure Functions)
+  // 3. Clinical Engine Calculations (Pure Functions with Effective Weight)
   const calculation = useMemo(() => {
     return calculateDrugDosage({
-      patientWeightKg: patient.weightKg,
+      patientWeightKg: effectiveWeightKg,
       indication: selectedIndication,
       concentration: selectedConcentration,
       customDoseMgPerKgPerDay: customDoseRate,
@@ -119,7 +138,7 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
       medicationName: medication.name,
     });
   }, [
-    patient.weightKg,
+    effectiveWeightKg,
     selectedIndication,
     selectedConcentration,
     customDoseRate,
@@ -131,14 +150,64 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
 
   // Dose Spectrum Thermometer Evaluation
   const doseSpectrum = useMemo(() => {
-    return evaluateDoseSpectrum(calculation.dailyTotalMg, patient.weightKg, selectedIndication);
-  }, [calculation.dailyTotalMg, patient.weightKg, selectedIndication]);
+    return evaluateDoseSpectrum(calculation.dailyTotalMg, effectiveWeightKg, selectedIndication);
+  }, [calculation.dailyTotalMg, effectiveWeightKg, selectedIndication]);
+
+  // Dual Prescription Formulations (HIS vs Patient)
+  const hisPrescription = useMemo(() => {
+    return generateHisPrescription({
+      medicationName: medication.name,
+      concentrationName: selectedConcentration.name,
+      amountMg: selectedConcentration.amountMg,
+      volumeMl: selectedConcentration.volumeMl,
+      form: selectedConcentration.form,
+      singleDoseQuantity: calculation.singleDoseUnitQuantity,
+      unitLabel: calculation.unitLabel,
+      route: selectedRoute,
+      intervalHours: Math.round(24 / selectedFrequency),
+      durationDays: selectedDurationDays,
+      bottlesNeeded: calculation.bottlesNeeded,
+    });
+  }, [
+    medication.name,
+    selectedConcentration,
+    calculation.singleDoseUnitQuantity,
+    calculation.unitLabel,
+    calculation.bottlesNeeded,
+    selectedRoute,
+    selectedFrequency,
+    selectedDurationDays,
+  ]);
+
+  const patientPrescription = useMemo(() => {
+    return generatePatientPrescription({
+      medicationName: medication.name,
+      concentrationName: selectedConcentration.name,
+      amountMg: selectedConcentration.amountMg,
+      volumeMl: selectedConcentration.volumeMl,
+      form: selectedConcentration.form,
+      singleDoseQuantity: calculation.singleDoseUnitQuantity,
+      unitLabel: calculation.unitLabel,
+      route: selectedRoute,
+      intervalHours: Math.round(24 / selectedFrequency),
+      durationDays: selectedDurationDays,
+    });
+  }, [
+    medication.name,
+    selectedConcentration,
+    calculation.singleDoseUnitQuantity,
+    calculation.unitLabel,
+    selectedRoute,
+    selectedFrequency,
+    selectedDurationDays,
+  ]);
 
   // Reset parameters
   const handleResetToDefaults = () => {
     setCustomDoseRate(undefined);
     setSelectedFrequency(selectedIndication?.frequencyPerDay || 3);
     setSelectedDurationDays(7);
+    setUseAdjustedWeight(false);
     toast.info('Valores restablecidos a las guías clínicas predeterminadas.');
   };
 
@@ -152,12 +221,19 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
     }
   };
 
-  // Copy structured prescription with toast feedback
-  const handleCopyPrescription = () => {
-    navigator.clipboard.writeText(calculation.structuredPrescription);
-    setCopiedRp(true);
-    toast.success('Receta médica estructurada (Rp.) copiada al portapapeles.');
-    setTimeout(() => setCopiedRp(false), 2000);
+  // Dual Copy Handlers with toast feedback
+  const handleCopyHis = () => {
+    navigator.clipboard.writeText(hisPrescription);
+    setCopiedHis(true);
+    toast.success('Formulación copiada para Historia Clínica (HIS)');
+    setTimeout(() => setCopiedHis(false), 2000);
+  };
+
+  const handleCopyPatient = () => {
+    navigator.clipboard.writeText(patientPrescription);
+    setCopiedPatient(true);
+    toast.success('Instrucciones copiadas para el Paciente');
+    setTimeout(() => setCopiedPatient(false), 2000);
   };
 
   // Physical Unit Icon renderer
@@ -316,6 +392,53 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
             {medication.commercialNames?.length > 0 && ` · Marcas: ${medication.commercialNames.slice(0, 3).join(', ')}`}
           </p>
         </div>
+
+        {/* Ajuste por Obesidad (IBW / ABW Devine) si IMC >= 30 */}
+        {weightAnalysis.isObese && weightAnalysis.abwKg && (
+          <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-xl space-y-2 text-xs animate-in fade-in duration-200">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 font-bold text-amber-900 dark:text-amber-200 text-xs">
+                <Scale className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Alerta: Paciente con Obesidad (IMC: {weightAnalysis.bmi} kg/m²)</span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 font-bold">
+                IBW Ideal: {weightAnalysis.ibwKg} kg
+              </span>
+            </div>
+
+            <p className="text-amber-950 dark:text-amber-100 text-[11px] leading-tight font-medium">
+              En obesidad clase I-III, dosificar por peso real puede inducir toxicidad. Puede alternar entre Peso Real y Peso Ajustado (fórmula Devine: ABW = IBW + 0.4 &times; [TBW - IBW]):
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setUseAdjustedWeight(false)}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer border flex flex-col items-center ${
+                  !useAdjustedWeight
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                    : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-amber-400'
+                }`}
+              >
+                <span className="text-[10px] uppercase opacity-90">Usar Peso Real</span>
+                <span className="text-sm font-mono font-black">{patient.weightKg} kg</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setUseAdjustedWeight(true)}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer border flex flex-col items-center ${
+                  useAdjustedWeight
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                    : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-amber-400'
+                }`}
+              >
+                <span className="text-[10px] uppercase opacity-90">Usar Peso Ajustado (ABW)</span>
+                <span className="text-sm font-mono font-black">{weightAnalysis.abwKg} kg</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ========================================================
             ALERTAS COLOR-CODED DE SEGURIDAD CLÍNICA
@@ -642,25 +765,82 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
             </div>
           )}
 
-          {/* Receta Médica Estructurada (Rp.) */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5" />
-                <span>Receta Médica Estructurada (Rp.)</span>
-              </span>
+          {/* Traductor Dual de Formulación: HIS y Paciente */}
+          <div className="space-y-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Botón 1: Copiar para HIS (Historia Clínica) */}
               <button
                 type="button"
-                onClick={handleCopyPrescription}
-                className="flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-2 py-1 rounded-md transition-colors cursor-pointer"
+                onClick={handleCopyHis}
+                className="py-3 px-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer min-h-[46px]"
               >
-                {copiedRp ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedRp ? 'Copiado' : 'Copiar Rp.'}</span>
+                {copiedHis ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-300 stroke-[2.5]" />
+                    <span>¡Copiado para HIS!</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 text-white stroke-[2.2]" />
+                    <span>Copiar para HIS (Historia Clínica)</span>
+                  </>
+                )}
+              </button>
+
+              {/* Botón 2: Copiar para Paciente */}
+              <button
+                type="button"
+                onClick={handleCopyPatient}
+                className="py-3 px-3.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer min-h-[46px]"
+              >
+                {copiedPatient ? (
+                  <>
+                    <Check className="w-4 h-4 text-white stroke-[2.5]" />
+                    <span>¡Copiado para Paciente!</span>
+                  </>
+                ) : (
+                  <>
+                    <User className="w-4 h-4 text-white stroke-[2.2]" />
+                    <span>Copiar para Paciente</span>
+                  </>
+                )}
               </button>
             </div>
-            <pre className="text-xs font-mono bg-slate-50 dark:bg-slate-850 p-2.5 rounded-lg whitespace-pre-wrap text-slate-800 dark:text-slate-200 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-              {calculation.structuredPrescription}
-            </pre>
+
+            {/* Vista Previa Dual */}
+            <div className="space-y-2">
+              {/* Vista Previa HIS */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Texto para Historia Clínica (HIS / HCE):</span>
+                  </span>
+                  <span className="text-[9px] font-mono text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded">
+                    Técnico
+                  </span>
+                </div>
+                <p className="text-xs font-mono font-medium text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-850 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800 break-words leading-relaxed select-all">
+                  {hisPrescription}
+                </p>
+              </div>
+
+              {/* Vista Previa Lenguaje Paciente */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Instrucciones para el Paciente / Cuidador:</span>
+                  </span>
+                  <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                    Horarios & Cuidados
+                  </span>
+                </div>
+                <p className="text-xs font-sans font-medium text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-850 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800 break-words leading-relaxed select-all">
+                  {patientPrescription}
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 

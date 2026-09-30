@@ -9,6 +9,7 @@ import {
   calculateDrugDosage,
   evaluateObstetricSafety,
 } from './clinicalEngine';
+import { generateEhrPrescription } from './prescriptionGenerator';
 import { Medication, DrugIndication, DrugConcentration, PatientProfile } from '../types/clinical';
 
 function assert(condition: boolean, testName: string, details?: string) {
@@ -169,6 +170,25 @@ console.log('====================================================\n');
   assert(obsResult.isAlertTriggered === true, 'Obstetric danger triggered for 3rd trimester NSAID');
   assert(obsResult.severity === 'contraindicated', 'Severity is contraindicated');
   assert(Boolean(obsResult.alternativeSuggestion), 'Clinical alternative proposed (Paracetamol)');
+}
+
+// TEST 6: EHR One-Click Prescription String Generation (SRS Formatter)
+{
+  const text = generateEhrPrescription({
+    medicationName: 'Amoxicilina',
+    concentrationName: 'Suspensión 250 mg / 5 mL',
+    amountMg: 250,
+    volumeMl: 5,
+    form: 'suspension',
+    singleDoseQuantity: 10,
+    unitLabel: 'mL',
+    route: 'oral',
+    intervalHours: 8,
+    durationDays: 7,
+  });
+
+  const expected = 'Amoxicilina, 250mg/5mL, Administrar 10 mL Vía Oral, cada 8 horas, por 7 días.';
+  assert(text === expected, 'EHR prescription string format exact match', `Got "${text}"`);
 }
 
 console.log('\n====================================================');

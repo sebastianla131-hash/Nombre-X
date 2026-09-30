@@ -10,7 +10,9 @@ import {
   CalculationResult,
   RenalClearanceResult,
   ObstetricSafetyEvaluation,
-  Medication
+  Medication,
+  BodyWeightAnalysis,
+  CrashCartItem,
 } from '../types/clinical';
 
 /**
@@ -58,6 +60,286 @@ export function calculateBMI(
 export function calculateBSA(weightKg: number, heightCm?: number): number | null {
   if (!heightCm || heightCm <= 0 || weightKg <= 0) return null;
   return Number(Math.sqrt((heightCm * weightKg) / 3600).toFixed(2));
+}
+
+/**
+ * 2b. Ideal Body Weight (IBW) calculation
+ * - Adults (age >= 18 or height >= 152.4 cm): Devine Formula
+ *   Male: 50 + 2.3 * ((heightCm / 2.54) - 60)
+ *   Female: 45.5 + 2.3 * ((heightCm / 2.54) - 60)
+ * - Pediatrics: Height-based 50th percentile weight approximation or age formula
+ */
+export function calculateIBW(patient: PatientProfile): number | null {
+  const heightCm = patient.heightCm;
+  const isFemale = patient.gender === 'female';
+  const age = (patient.ageYears ?? 0) + (patient.ageMonths ? patient.ageMonths / 12 : 0);
+
+  if (age >= 18 || (heightCm && heightCm >= 152.4)) {
+    if (!heightCm || heightCm < 100) return null;
+    const heightInches = heightCm / 2.54;
+    const inchesOver60 = Math.max(0, heightInches - 60);
+    const base = isFemale ? 45.5 : 50.0;
+    return Number((base + 2.3 * inchesOver60).toFixed(1));
+  }
+
+  // Pediatric IBW estimation
+  if (heightCm && heightCm > 0) {
+    const heightM = heightCm / 100;
+    return Number((16.5 * heightM * heightM).toFixed(1));
+  }
+
+  if (age > 0) {
+    return Number(estimatePediatricWeight(patient.ageYears, patient.ageMonths).toFixed(1));
+  }
+
+  return null;
+}
+
+/**
+ * 2c. Adjusted Body Weight (ABW) for Obese Patients (BMI >= 30)
+ * Formula: IBW + 0.4 * (Actual Weight - IBW)
+ */
+export function calculateABW(actualWeightKg: number, ibwKg: number): number {
+  if (actualWeightKg <= ibwKg) return actualWeightKg;
+  return Number((ibwKg + 0.4 * (actualWeightKg - ibwKg)).toFixed(1));
+}
+
+/**
+ * 2d. Comprehensive Body Weight Analysis for Obesity & Dosing
+ */
+export function analyzeBodyWeight(
+  patient: PatientProfile,
+  useAdjustedWeight: boolean = false
+): BodyWeightAnalysis {
+  const actualWeightKg = patient.weightKg;
+  const bmiData = calculateBMI(actualWeightKg, patient.heightCm);
+  const ibwKg = calculateIBW(patient);
+  const abwKg = ibwKg && actualWeightKg > ibwKg ? calculateABW(actualWeightKg, ibwKg) : null;
+  const isObese = Boolean(bmiData.bmi && bmiData.bmi >= 30);
+
+  const recommendedWeightKg = useAdjustedWeight && abwKg ? abwKg : actualWeightKg;
+
+  return {
+    actualWeightKg,
+    ibwKg,
+    abwKg,
+    bmi: bmiData.bmi,
+    bmiCategory: bmiData.category,
+    isObese,
+    recommendedWeightKg,
+  };
+}
+
+/**
+ * 2e. Emergency Pediatric Weight Estimation (Broselow / APLS Standard)
+ */
+export function estimatePediatricWeight(
+  ageYears: number = 0,
+  ageMonths: number = 0,
+  heightCm?: number
+): number {
+  if (heightCm && heightCm > 45 && heightCm < 150) {
+    const est = Math.exp(0.0185 * heightCm) * 3.2;
+    return Number(Math.min(65, Math.max(2, est)).toFixed(1));
+  }
+
+  const totalAgeYears = ageYears + (ageMonths / 12);
+  if (totalAgeYears < 1) {
+    const m = ageMonths > 0 ? ageMonths : totalAgeYears * 12;
+    return Number(((m * 0.5) + 4).toFixed(1));
+  }
+  if (totalAgeYears <= 5) {
+    return Number((2 * (totalAgeYears + 5)).toFixed(1));
+  }
+  if (totalAgeYears <= 12) {
+    return Number(((totalAgeYears * 3) + 7).toFixed(1));
+  }
+  return Math.min(70, Number(((totalAgeYears * 3.5) + 5).toFixed(1)));
+}
+
+/**
+ * 2f. Crash Cart (Código Azul / Resucitación de Emergencia PALS & ACLS)
+ */
+export function calculateCrashCart(
+  patient: PatientProfile,
+  customWeightKg?: number
+): CrashCartItem[] {
+  const weight = customWeightKg && customWeightKg > 0
+    ? customWeightKg
+    : (patient.weightKg > 0 ? patient.weightKg : estimatePediatricWeight(patient.ageYears, patient.ageMonths, patient.heightCm));
+
+  const ageYears = patient.ageYears || 0;
+  const isAdult = ageYears >= 16 || weight >= 50;
+
+  const epiMg = isAdult ? 1.0 : Math.min(1.0, Number((0.01 * weight).toFixed(2)));
+  const epiMl = isAdult ? 10.0 : Math.min(10.0, Number((0.1 * weight).toFixed(1)));
+
+  const amioMg = isAdult ? 300 : Math.min(300, Math.round(5 * weight));
+  const amioMl = Number((amioMg / 50).toFixed(1));
+
+  const atropinaRawMg = 0.02 * weight;
+  const atropinaMax = isAdult ? 1.0 : 0.5;
+  const atropinaMg = isAdult ? 1.0 : Number(Math.min(atropinaMax, Math.max(0.1, atropinaRawMg)).toFixed(2));
+  const atropinaMl = Number((atropinaMg / 1).toFixed(2));
+
+  const defibInitialJoules = isAdult ? 200 : Math.min(200, Math.round(2 * weight));
+  const defibSecondJoules = isAdult ? 360 : Math.min(360, Math.round(4 * weight));
+  const cardioversionJoules = isAdult ? 100 : Math.min(100, Math.round(1 * weight));
+
+  let tetCuffed = '7.5 - 8.0 mm';
+  let tetUncuffed = '8.0 mm';
+  let tetDepthCm = '21 - 23 cm';
+  if (!isAdult && ageYears < 16) {
+    if (ageYears < 1) {
+      tetCuffed = '3.0 - 3.5 mm';
+      tetUncuffed = '3.5 mm';
+      tetDepthCm = '9 - 10 cm';
+    } else {
+      const cuffedNum = Number(((ageYears / 4) + 3.5).toFixed(1));
+      const uncuffedNum = Number(((ageYears / 4) + 4.0).toFixed(1));
+      tetCuffed = `${cuffedNum} mm (con balón)`;
+      tetUncuffed = `${uncuffedNum} mm (sin balón)`;
+      tetDepthCm = `${Math.round(cuffedNum * 3)} cm en labio`;
+    }
+  }
+
+  const fluidBoloMl = isAdult ? 1000 : Math.min(1000, Math.round(20 * weight));
+  const bicarbMeq = isAdult ? 50 : Math.min(50, Math.round(1 * weight));
+  const dextrosaMl = isAdult ? 150 : Math.min(150, Math.round(2.5 * weight));
+
+  return [
+    {
+      id: 'defib_1',
+      category: 'defibrillation',
+      name: 'Desfibrilación Eléctrica (1ª Descarga)',
+      indication: 'Fibrilación Ventricular (FV) / TV sin pulso',
+      doseFormula: isAdult ? '200 J Bifásico fijo' : '2 J / kg',
+      calculatedDose: `${defibInitialJoules} Joules`,
+      concentrationOrSpec: 'Palas / Parches Pediátricos o Adulto con gel',
+      volumeOrJoulesToDeliver: `${defibInitialJoules} J`,
+      routeOrAction: 'Descarga asincrónica inmediata + 2 min RCP',
+      maxLimit: 'Máx 200 J',
+      notes: 'Continuar compresiones inmediatamente sin verificar pulso.',
+      isDefibrillation: true,
+    },
+    {
+      id: 'defib_2',
+      category: 'defibrillation',
+      name: 'Desfibrilación Eléctrica (2ª Descarga y Subsiguientes)',
+      indication: 'FV / TV sin pulso persistente o refractaria',
+      doseFormula: isAdult ? '360 J Bifásico o máximo' : '4 J / kg',
+      calculatedDose: `${defibSecondJoules} Joules`,
+      concentrationOrSpec: 'Aumentar carga en desfibrilador',
+      volumeOrJoulesToDeliver: `${defibSecondJoules} J`,
+      routeOrAction: 'Descarga asincrónica inmediata + 2 min RCP',
+      maxLimit: 'Máx 360 J (o 10 J/kg)',
+      notes: 'Administrar Epinefrina tras la 2ª descarga.',
+      isDefibrillation: true,
+    },
+    {
+      id: 'cardioversion',
+      category: 'defibrillation',
+      name: 'Cardioversión Sincronizada',
+      indication: 'Taquicardia Supraventricular o TV inestable CON pulso',
+      doseFormula: isAdult ? '100 J Sincronizado' : '0.5 - 1 J / kg',
+      calculatedDose: `${cardioversionJoules} Joules`,
+      concentrationOrSpec: 'Activar modo SYNC en desfibrilador',
+      volumeOrJoulesToDeliver: `${cardioversionJoules} J`,
+      routeOrAction: 'Descarga sincronizada con onda R',
+      notes: 'Sedación y analgesia previas si el paciente está consciente.',
+      isDefibrillation: true,
+    },
+    {
+      id: 'adrenaline',
+      category: 'resuscitation',
+      name: 'Epinefrina (Adrenalina) 1:10.000',
+      indication: 'Paro Cardíaco (Asistolia / AESP / FV refractaria)',
+      doseFormula: '0.01 mg/kg (0.1 mL/kg de 1:10.000)',
+      calculatedDose: `${epiMg} mg`,
+      concentrationOrSpec: 'Dilución 1:10.000 (0.1 mg/mL = 1mg en 10mL)',
+      volumeOrJoulesToDeliver: `${epiMl} mL`,
+      routeOrAction: 'IV / IO rápido en bolo + flush 5-10 mL SF',
+      maxLimit: 'Máx 1 mg (10 mL)',
+      notes: 'Repetir cada 3 a 5 minutos mientras dure el paro.',
+    },
+    {
+      id: 'amiodarone',
+      category: 'antiarrhythmic',
+      name: 'Amiodarona',
+      indication: 'FV / TV sin pulso tras 3ª descarga',
+      doseFormula: '5 mg/kg bolo rápido IV/IO',
+      calculatedDose: `${amioMg} mg`,
+      concentrationOrSpec: 'Ampolla 150 mg / 3 mL (50 mg/mL)',
+      volumeOrJoulesToDeliver: `${amioMl} mL`,
+      routeOrAction: 'Bolo IV/IO rápido (diluido en DAD 5% o directo) + flush',
+      maxLimit: '1ª dosis: 300 mg. 2ª dosis: 150 mg.',
+      notes: 'Puede repetirse una 2ª dosis de 2.5 mg/kg (o 150 mg) si refractario.',
+    },
+    {
+      id: 'atropine',
+      category: 'cardiovascular',
+      name: 'Atropina Sulfato',
+      indication: 'Bradicardia sintomática con compromiso hemodinámico',
+      doseFormula: '0.02 mg/kg IV/IO (mín 0.1 mg)',
+      calculatedDose: `${atropinaMg} mg`,
+      concentrationOrSpec: 'Ampolla 1 mg / 1 mL',
+      volumeOrJoulesToDeliver: `${atropinaMl} mL`,
+      routeOrAction: 'IV / IO rápido',
+      maxLimit: isAdult ? 'Máx 1.0 mg' : 'Máx 0.5 mg en niños',
+      notes: 'No dar < 0.1 mg para evitar bradicardia paradójica.',
+    },
+    {
+      id: 'fluids',
+      category: 'fluids',
+      name: 'Solución Salina 0.9% (Bolo Expansor)',
+      indication: 'Shock Hipovolémico, Séptico o Deshidratación Grave',
+      doseFormula: '20 mL/kg en 10-20 minutos',
+      calculatedDose: `${fluidBoloMl} mL`,
+      concentrationOrSpec: 'Cloruro de Sodio 0.9% o Ringer Lactato',
+      volumeOrJoulesToDeliver: `${fluidBoloMl} mL`,
+      routeOrAction: 'Infusión rápida a presión / jeringa IV/IO',
+      maxLimit: 'Máx 1.000 mL por bolo',
+      notes: 'Evaluar crepitantes o hepatomegalia tras cada bolo.',
+    },
+    {
+      id: 'dextrose',
+      category: 'fluids',
+      name: 'Dextrosa al 10% (DAD 10%)',
+      indication: 'Hipoglicemia sintomática o en paro',
+      doseFormula: '2.5 mL/kg (0.25 g/kg de glucosa)',
+      calculatedDose: `${dextrosaMl} mL`,
+      concentrationOrSpec: 'Dextrosa en Agua Destilada 10% (0.1 g/mL)',
+      volumeOrJoulesToDeliver: `${dextrosaMl} mL`,
+      routeOrAction: 'IV / IO infusión lenta en 5-10 minutos',
+      maxLimit: 'Máx 150 mL en bolo',
+      notes: 'Comprobar hemoglucotest a los 10-15 minutos.',
+    },
+    {
+      id: 'bicarb',
+      category: 'resuscitation',
+      name: 'Bicarbonato de Sodio 8.4%',
+      indication: 'Paro prolongado, Hiperpotasemia o Intoxicación por ATC',
+      doseFormula: '1 mEq/kg (1 mL/kg de sol. 8.4%)',
+      calculatedDose: `${bicarbMeq} mEq`,
+      concentrationOrSpec: 'Solución 8.4% (1 mEq = 1 mL)',
+      volumeOrJoulesToDeliver: `${bicarbMeq} mL`,
+      routeOrAction: 'IV / IO lento en 2-5 minutos',
+      maxLimit: 'Máx 50 mEq (50 mL)',
+      notes: 'Asegurar ventilación alveolar adecuada antes de administrar.',
+    },
+    {
+      id: 'airway_tet',
+      category: 'airway',
+      name: 'Tubo Endotraqueal (TET / ETT)',
+      indication: 'Vía aérea avanzada en paro o insuficiencia ventilatoria',
+      doseFormula: isAdult ? 'Estándar adulto' : 'Con balón: (Edad/4)+3.5 | Sin balón: (Edad/4)+4',
+      calculatedDose: tetCuffed,
+      concentrationOrSpec: `TET con balón: ${tetCuffed} | Sin balón: ${tetUncuffed}`,
+      volumeOrJoulesToDeliver: `Fijación labial: ${tetDepthCm}`,
+      routeOrAction: 'Intubación orotraqueal bajo laringoscopía directa / videolaringoscopio',
+      notes: 'Tener siempre disponible un número medio punto menor y mayor (±0.5).',
+    },
+  ];
 }
 
 /**
