@@ -15,6 +15,7 @@ import { CustomCalculator } from './components/CustomCalculator';
 import { PhoneContainer } from './components/PhoneContainer';
 import { HomeScreen } from './components/HomeScreen';
 import { PatientProfileView } from './components/PatientProfileView';
+import { ToastProvider } from './components/ui/ToastProvider';
 import { MEDICATIONS } from './data/medications';
 import { Medication, PatientProfile } from './types';
 
@@ -208,8 +209,9 @@ export default function App() {
   const currentBottomTab = currentScreen === 'main' ? (selectedDrug ? null : activeTab) : null;
 
   return (
-    <PhoneContainer>
-      {/* Dynamic Screen Routing */}
+    <ToastProvider>
+      <PhoneContainer>
+        {/* Dynamic Screen Routing */}
       {currentScreen === 'home' ? (
         // 1. PÁGINA DE INICIO (Home Screen) - Sin barra inferior
         <HomeScreen
@@ -403,7 +405,8 @@ export default function App() {
           />
         </div>
       )}
-    </PhoneContainer>
+      </PhoneContainer>
+    </ToastProvider>
   );
 }
 

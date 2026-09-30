@@ -1,3 +1,5 @@
+export * from './clinical';
+
 export type DrugCategory =
   | 'Todos'
   | 'Favoritos'

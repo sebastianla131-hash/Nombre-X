@@ -78,14 +78,14 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
   };
 
   const getProfileData = (): PatientProfile => ({
-    weightKg: Math.max(0.5, effectiveWeightKg || 1),
-    heightCm: Math.max(30, heightCm || 100),
-    ageYears: Math.max(0, ageYears),
-    ageMonths: Math.max(0, ageMonths),
+    weightKg: Math.min(300, Math.max(0.5, Number((effectiveWeightKg || 1).toFixed(2)))),
+    heightCm: Math.min(250, Math.max(20, Math.round(heightCm || 100))),
+    ageYears: Math.min(125, Math.max(0, ageYears)),
+    ageMonths: Math.min(11, Math.max(0, ageMonths)),
     gender,
     isPregnant: gender === 'female' ? isPregnant : false,
     pregnancyTrimester: gender === 'female' && isPregnant ? pregnancyTrimester : undefined,
-    serumCreatinineMgDl: parseFloat(serumCreatinine) || 0.8
+    serumCreatinineMgDl: Math.min(20, Math.max(0.1, Number((parseFloat(serumCreatinine) || 0.8).toFixed(2))))
   });
 
   const handleContinue = () => {
@@ -137,6 +137,8 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
               <span className="text-[11px] text-slate-500 block mb-0.5">Años</span>
               <input
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 min="0"
                 max="120"
                 value={ageYears}
@@ -148,6 +150,8 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
               <span className="text-[11px] text-slate-500 block mb-0.5">Meses (en lactantes)</span>
               <input
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 min="0"
                 max="11"
                 value={ageMonths}
@@ -323,9 +327,11 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
               <div className="relative">
                 <input
                   type="number"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   step="0.1"
                   min="0.5"
-                  max="250"
+                  max="300"
                   value={weightKg || ''}
                   onChange={(e) => setWeightKg(parseFloat(e.target.value) || 0)}
                   placeholder="Ej. 70"
@@ -358,8 +364,10 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
               <div className="relative">
                 <input
                   type="number"
+                  inputMode="decimal"
+                  pattern="[0-9]*"
                   step="1"
-                  min="30"
+                  min="20"
                   max="250"
                   value={heightCm || ''}
                   onChange={(e) => setHeightCm(parseFloat(e.target.value) || 0)}
@@ -586,9 +594,11 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
           <div className="relative">
             <input
               type="number"
+              inputMode="decimal"
+              pattern="[0-9]*[.,]?[0-9]*"
               step="0.05"
               min="0.1"
-              max="15"
+              max="20"
               value={serumCreatinine}
               onChange={(e) => setSerumCreatinine(e.target.value)}
               placeholder="0.8"
