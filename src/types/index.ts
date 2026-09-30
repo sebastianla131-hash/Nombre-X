@@ -4,6 +4,9 @@ export type DrugCategory =
   | 'Antibióticos'
   | 'Analgésicos'
   | 'Antihipertensivos'
+  | 'Endocrinología'
+  | 'Cardiología'
+  | 'Ginecología'
   | 'Pediátricos'
   | 'Analgesia / AINEs'
   | 'Cardiovascular'
@@ -12,7 +15,7 @@ export type DrugCategory =
   | 'Corticoides'
   | 'Antídotos / Toxicología';
 
-export type RouteOfAdmin = 'oral' | 'iv' | 'im' | 'rectal' | 'inhalatoria' | 'sublingual' | 'topica';
+export type RouteOfAdmin = 'oral' | 'iv' | 'im' | 'sc' | 'rectal' | 'inhalatoria' | 'sublingual' | 'topica';
 
 export interface DrugConcentration {
   id: string;

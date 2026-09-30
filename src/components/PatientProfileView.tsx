@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ArrowLeft,
   User,
@@ -30,6 +30,10 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
   onBackToHome,
   onContinueToCalculators
 }) => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const [showInstructions, setShowInstructions] = useState<boolean>(false);
   const [weightKg, setWeightKg] = useState<number>(patient.weightKg);
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
@@ -91,75 +95,30 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 min-h-full text-slate-900 dark:text-slate-100">
-      {/* 1. ENCABEZADO CLÍNICO */}
-      <div className="bg-blue-800 text-white px-4 py-3 sticky top-0 z-30 shadow-md">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onBackToHome}
-            className="flex items-center gap-1.5 text-xs font-semibold text-blue-100 hover:text-white py-1 px-2 rounded-lg hover:bg-blue-900 transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Inicio</span>
-          </button>
+    <div className="flex-1 h-full flex flex-col bg-white dark:bg-slate-900 overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
+      {/* Header Minimalista */}
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shrink-0">
+        <button
+          type="button"
+          onClick={onBackToHome}
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Inicio</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={handleContinue}
-            className="flex items-center gap-1 text-xs font-bold text-white bg-blue-700 hover:bg-blue-600 px-3 py-1.5 rounded-lg border border-blue-500 shadow-xs transition-colors cursor-pointer"
-          >
-            <span>Calculadoras</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <h1 className="text-sm font-bold text-slate-900 dark:text-white">
+          Datos del Paciente
+        </h1>
 
-        <div className="mt-2.5 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-900 text-blue-200 flex items-center justify-center shrink-0">
-            <User className="w-4 h-4" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold leading-tight text-white">
-              Datos del paciente y cálculo de IMC
-            </h1>
-            <p className="text-[11px] text-blue-100/90 leading-tight mt-0.5">
-              Evaluación antropométrica nutricional, superficie corporal y parámetros basales
-            </p>
-          </div>
-        </div>
-
-        {/* Sección "Instrucciones" plegable */}
-        <div className="mt-2.5 pt-2 border-t border-blue-700/60">
-          <button
-            type="button"
-            onClick={() => setShowInstructions(!showInstructions)}
-            className="flex items-center justify-between w-full text-left text-xs font-semibold text-blue-100 hover:text-white transition-colors"
-          >
-            <span className="flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5 text-blue-300" />
-              <span>Instrucciones y contexto clínico de uso</span>
-            </span>
-            {showInstructions ? (
-              <ChevronUp className="w-3.5 h-3.5 text-blue-300" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-blue-300" />
-            )}
-          </button>
-
-          {showInstructions && (
-            <div className="mt-2 text-[11px] text-blue-100 bg-blue-900/80 p-2.5 rounded-lg border border-blue-700/60 space-y-1.5 animate-in fade-in duration-150 leading-relaxed">
-              <p>
-                <strong>Objetivo:</strong> Determinar el estado nutricional del paciente mediante el Índice de Quetelet (IMC = peso / talla²), estimar la Superficie Corporal (ASC Mosteller) y calcular el peso ideal para el ajuste seguro de dosificación de fármacos.
-              </p>
-              <p>
-                <strong>Población:</strong> Adultos y pacientes pediátricos (lactantes, niños y adolescentes con correlación según percentiles de la OMS).
-              </p>
-              <p>
-                <strong>Precaución clínica:</strong> En pacientes con edema severo, ascitis, obesidad sarcopénica o gran masa muscular, el IMC puede no reflejar fielmente la composición corporal. En pacientes obesos (IMC ≥ 30 kg/m²), se recomienda calcular dosis de fármacos hidrofílicos (como aminoglucósidos) basándose en el Peso Ideal o Peso Ajustado.
-              </p>
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={handleContinue}
+          className="flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-colors cursor-pointer"
+        >
+          <span>Continuar</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {/* Main Content Area */}
@@ -168,7 +127,7 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {/* 1º APARTADO: EDAD DEL PACIENTE */}
-        <section className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+        <section className="bg-white dark:bg-slate-800/80 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-none space-y-2">
           <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-blue-700" />
             Edad del Paciente
@@ -646,17 +605,17 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
           <button
             type="button"
             onClick={handleContinue}
-            className="w-full py-3.5 px-4 bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.98] min-h-[48px] cursor-pointer"
+            className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-semibold text-sm rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all active:scale-[0.99] min-h-[48px] cursor-pointer"
           >
-            <Check className="w-4 h-4 text-blue-200" />
+            <Check className="w-4 h-4 opacity-80" />
             <span>Guardar y Continuar a Fármacos / Calculadoras</span>
-            <ArrowRight className="w-4 h-4 ml-1" />
+            <ArrowRight className="w-4 h-4 opacity-80 ml-0.5" />
           </button>
 
           <button
             type="button"
             onClick={onBackToHome}
-            className="w-full py-2.5 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors text-center cursor-pointer"
+            className="w-full py-2.5 px-4 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors text-center cursor-pointer"
           >
             Volver a la Página de Inicio
           </button>

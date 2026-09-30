@@ -110,6 +110,8 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
       standardBottleMl: selectedConcentration.standardBottleMl,
       maxDailyDoseMg: selectedIndication.maxDailyDoseMg,
       maxSingleDoseMg: selectedIndication.maxSingleDoseMg,
+      standardMinDoseMgKg: selectedIndication.minDoseMgPerKgPerDay,
+      standardMaxDoseMgKg: selectedIndication.maxDoseMgPerKgPerDay,
       route: selectedRoute,
       instructionsNote: selectedConcentration.notes
     });
@@ -191,6 +193,7 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
   };
 
   // Severity color coding for result card
+  const isOutOfRange = Boolean(calculation?.isOutOfRange);
   const isMaxExceeded = calculation?.isMaxDoseExceeded;
   const isRenalAlert = renalStatus && renalStatus.crCl < 50 && medication.renalAdjustments && medication.renalAdjustments.length > 0;
   const isPregnancyContraindicated = pregSafety?.isContraindicatedNow;
@@ -203,10 +206,10 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
     resultHeaderBg = 'bg-rose-800';
     resultBorderColor = 'border-rose-400 dark:border-rose-800';
     resultCardBg = 'bg-rose-50/60 dark:bg-rose-950/20';
-  } else if (isMaxExceeded) {
-    resultHeaderBg = 'bg-amber-600';
-    resultBorderColor = 'border-amber-300 dark:border-amber-700';
-    resultCardBg = 'bg-amber-50/50 dark:bg-amber-950/20';
+  } else if (isOutOfRange) {
+    resultHeaderBg = 'bg-orange-600';
+    resultBorderColor = 'border-orange-400 dark:border-orange-600';
+    resultCardBg = 'bg-orange-50/50 dark:bg-orange-950/20';
   } else if (isRenalAlert) {
     resultHeaderBg = 'bg-rose-700';
     resultBorderColor = 'border-rose-300 dark:border-rose-800';
@@ -214,15 +217,15 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
   }
 
   return (
-    <div className="pb-20 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100">
+    <div className="pb-10 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors">
       {/* Top Bar Navigation */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 sticky top-0 z-20 shadow-xs flex items-center justify-between">
+      <div className="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 py-2 flex items-center justify-between shrink-0">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-800 dark:text-blue-400 py-1"
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white py-1 cursor-pointer transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Volver al Catálogo</span>
+          <span>Volver a Favoritos</span>
         </button>
 
         <div className="flex items-center gap-1">
@@ -514,6 +517,66 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
             </div>
           </div>
 
+          {/* Ajuste o Verificación de Dosis Terapéutica por Peso */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Dosis por Peso del Paciente:
+              </label>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-blue-700 dark:text-blue-400">
+                  {activeDoseMgKg} mg/kg{selectedIndication.isDosePerKgPerDose ? '/toma' : '/día'}
+                </span>
+                {customDoseMgKg !== null && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomDoseMgKg(null)}
+                    className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    (Restablecer)
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Rango Terapéutico Estándar Info */}
+            <div className="flex items-center justify-between text-[11px] bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-200/80 dark:border-slate-700/80 flex-wrap gap-1">
+              <span className="text-slate-500 dark:text-slate-400">
+                Límites terapéuticos estándar:{' '}
+                <strong className="text-slate-700 dark:text-slate-200 font-semibold">
+                  {selectedIndication.minDoseMgPerKgPerDay && selectedIndication.maxDoseMgPerKgPerDay
+                    ? `${selectedIndication.minDoseMgPerKgPerDay} - ${selectedIndication.maxDoseMgPerKgPerDay} mg/kg/día`
+                    : selectedIndication.recommendedDoseMgPerKgPerDay
+                    ? `${selectedIndication.recommendedDoseMgPerKgPerDay} mg/kg${selectedIndication.isDosePerKgPerDose ? '/toma' : '/día'}`
+                    : `${selectedIndication.fixedAdultDoseMg} mg`}
+                </strong>
+              </span>
+              <span className="text-slate-500 dark:text-slate-400 font-mono">
+                Tope: {selectedIndication.maxSingleDoseMg ? `${selectedIndication.maxSingleDoseMg}mg/toma · ` : ''}{selectedIndication.maxDailyDoseMg}mg/día
+              </span>
+            </div>
+
+            {/* Input para ajustar dosis en mg/kg */}
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0.1"
+                max="5000"
+                step="any"
+                value={activeDoseMgKg}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setCustomDoseMgKg(isNaN(val) ? 0 : val);
+                }}
+                className="flex-1 py-1.5 px-3 text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                placeholder="Dosis mg/kg"
+              />
+              <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0 font-medium">
+                mg/kg{selectedIndication.isDosePerKgPerDose ? '/toma' : '/día'}
+              </span>
+            </div>
+          </div>
+
           {/* Variable Categórica 2: Concentración Farmacéutica (Botones tipo Pastilla, NO Dropdown) */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
             <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-2">
@@ -703,6 +766,11 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
                       <span className="ml-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
                         {formatRouteLabel(selectedRoute).abbr}
                       </span>
+                      {calculation.isOutOfRange && (
+                        <span className="ml-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 dark:bg-orange-950/70 text-orange-800 dark:text-orange-200 border border-orange-300 dark:border-orange-700">
+                          ⚠️ Dosis fuera de rango
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -754,12 +822,38 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
                   </div>
                 )}
 
-                {/* Banner de Límite Máximo Superado (Color Ámbar) */}
-                {calculation.isMaxDoseExceeded && (
-                  <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 p-2.5 rounded-lg text-xs">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="font-bold">Tope Máximo de Seguridad Aplicado:</strong> La dosis teórica por peso excedía el límite recomendado. Se ajustó automáticamente a {selectedIndication.maxSingleDoseMg || selectedIndication.maxDailyDoseMg} mg.
+                {/* Alerta de 'Dosis fuera de rango' (Naranja) */}
+                {calculation.isOutOfRange && (
+                  <div className="p-3 bg-orange-50 dark:bg-orange-950/40 border border-orange-400 dark:border-orange-600 text-orange-950 dark:text-orange-100 rounded-xl text-xs flex items-start gap-2.5 animate-in fade-in duration-200 shadow-xs">
+                    <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1.5 w-full">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-bold text-orange-900 dark:text-orange-200 uppercase tracking-wide text-[11px] flex items-center gap-1.5">
+                          <span>⚠️</span>
+                          <span>Alerta: Dosis fuera de rango</span>
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-200 text-orange-900 dark:bg-orange-900/70 dark:text-orange-200 border border-orange-300 dark:border-orange-700">
+                          Seguridad Clínica
+                        </span>
+                      </div>
+                      <p className="text-xs text-orange-950 dark:text-orange-100 leading-relaxed font-medium">
+                        {calculation.outOfRangeReason}
+                      </p>
+                      {calculation.isMaxDoseExceeded && (
+                        <div className="pt-1.5 border-t border-orange-200/80 dark:border-orange-800/80 text-[11px] text-orange-900 dark:text-orange-200 space-y-0.5">
+                          <div className="flex items-center justify-between flex-wrap gap-1">
+                            <span>
+                              Dosis teórica por peso: <strong>{calculation.rawCalculatedSingleMg} mg/toma</strong> ({calculation.rawCalculatedDailyMg} mg/día)
+                            </span>
+                            <span className="font-bold text-orange-800 dark:text-orange-300">
+                              → Tope aplicado: <strong>{calculation.singleDoseMg} mg</strong> ({calculation.dailyTotalMg} mg/día)
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-orange-700 dark:text-orange-400 italic">
+                            Se limitó la dosificación al techo máximo terapéutico definido en el perfil para resguardar la seguridad del paciente.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

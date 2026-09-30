@@ -169,7 +169,7 @@ export const RenalAdjustmentCalculator: React.FC<RenalAdjustmentCalculatorProps>
   }
 
   return (
-    <div className="p-4 space-y-4 max-w-xl mx-auto pb-24 text-slate-900 dark:text-slate-100">
+    <div className="p-4 space-y-4 max-w-xl mx-auto pb-24 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 transition-colors">
       {/* ========================================================
           1. ENCABEZADO: TÍTULO + SELECTOR DE ECUACIÓN + INSTRUCCIONES
          ======================================================== */}

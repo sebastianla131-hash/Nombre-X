@@ -5,6 +5,8 @@ import { GASTRO_MEDICATIONS } from './gastro';
 import { RESPIRATORY_EMERGENCY_MEDICATIONS } from './respiratory_emergency';
 import { NEUROLOGY_ANTIDOTES_MEDICATIONS } from './neurology_antidotes';
 import { CARDIOVASCULAR_MEDICATIONS } from './cardiovascular';
+import { ENDOCRINOLOGY_MEDICATIONS } from './endocrinology';
+import { GYNECOLOGY_MEDICATIONS } from './gynecology';
 
 /**
  * Listado Oficial Integrado de Medicamentos 2025
@@ -17,7 +19,9 @@ export const MEDICATIONS: Medication[] = [
   ...GASTRO_MEDICATIONS,
   ...RESPIRATORY_EMERGENCY_MEDICATIONS,
   ...NEUROLOGY_ANTIDOTES_MEDICATIONS,
-  ...CARDIOVASCULAR_MEDICATIONS
+  ...CARDIOVASCULAR_MEDICATIONS,
+  ...ENDOCRINOLOGY_MEDICATIONS,
+  ...GYNECOLOGY_MEDICATIONS
 ];
 
 export interface InfusionProtocol {

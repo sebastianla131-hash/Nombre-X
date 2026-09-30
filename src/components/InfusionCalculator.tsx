@@ -96,6 +96,7 @@ export const InfusionCalculator: React.FC<InfusionCalculatorProps> = ({
   }, [isInputValid, effectiveWeightKg, doseRate, selectedProtocol.doseUnit, drugAmountMg, solutionVolumeMl]);
 
   // Dose severity status
+  const isOutOfRange = doseRate > selectedProtocol.typicalDoseRange.max || doseRate < selectedProtocol.typicalDoseRange.min;
   const isHighDose = doseRate > selectedProtocol.typicalDoseRange.initial * 2;
   const isMaxDose = doseRate >= selectedProtocol.typicalDoseRange.max;
 
@@ -103,10 +104,10 @@ export const InfusionCalculator: React.FC<InfusionCalculatorProps> = ({
   let resultBorder = 'border-blue-200 dark:border-blue-800';
   let resultBg = 'bg-blue-50/50 dark:bg-slate-900';
 
-  if (isMaxDose) {
-    resultHeaderBg = 'bg-rose-700';
-    resultBorder = 'border-rose-300 dark:border-rose-800';
-    resultBg = 'bg-rose-50/50 dark:bg-rose-950/20';
+  if (isOutOfRange) {
+    resultHeaderBg = 'bg-orange-600';
+    resultBorder = 'border-orange-400 dark:border-orange-600';
+    resultBg = 'bg-orange-50/50 dark:bg-orange-950/20';
   } else if (isHighDose) {
     resultHeaderBg = 'bg-amber-600';
     resultBorder = 'border-amber-300 dark:border-amber-700';
@@ -114,7 +115,7 @@ export const InfusionCalculator: React.FC<InfusionCalculatorProps> = ({
   }
 
   return (
-    <div className="p-4 space-y-4 max-w-xl mx-auto pb-24 text-slate-900 dark:text-slate-100">
+    <div className="p-4 space-y-4 max-w-xl mx-auto pb-24 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 transition-colors">
       {/* ========================================================
           1. ENCABEZADO: NOMBRE + DESCRIPCIÓN 1-LÍNEA + INSTRUCCIONES PLEGABLE
          ======================================================== */}
@@ -400,12 +401,22 @@ export const InfusionCalculator: React.FC<InfusionCalculatorProps> = ({
                 </div>
               </div>
 
-              {/* Advertencia de Dosis Máxima o Elevada */}
-              {isMaxDose && (
-                <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 p-2.5 rounded-lg text-xs">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="font-bold">Dosis Límite Máximo:</strong> El ritmo programado alcanza el tope de titulación. Considerar agregar un segundo agente inotrópico/vasopresor (ej. Vasopresina) o evaluar ecocardiografía urgente.
+              {/* Alerta de Dosis Fuera de Rango (Naranja) */}
+              {isOutOfRange && (
+                <div className="p-3 bg-orange-50 dark:bg-orange-950/40 border border-orange-400 dark:border-orange-600 text-orange-950 dark:text-orange-100 rounded-xl text-xs flex items-start gap-2.5 animate-in fade-in duration-200 shadow-xs">
+                  <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-orange-900 dark:text-orange-200 uppercase tracking-wide text-[11px]">
+                        ⚠️ Alerta: Dosis fuera de rango
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-200 text-orange-900 dark:bg-orange-900/70 dark:text-orange-200 border border-orange-300 dark:border-orange-700">
+                        Seguridad Clínica
+                      </span>
+                    </div>
+                    <p className="text-xs text-orange-950 dark:text-orange-100 leading-relaxed font-medium">
+                      El ritmo programado ({doseRate} {selectedProtocol.doseUnit}) se encuentra fuera del rango de titulación estándar ({selectedProtocol.typicalDoseRange.min} - {selectedProtocol.typicalDoseRange.max} {selectedProtocol.doseUnit}).
+                    </p>
                   </div>
                 </div>
               )}

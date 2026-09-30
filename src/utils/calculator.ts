@@ -63,8 +63,14 @@ export interface DoseCalculationResult {
   intervalHours: number;
   durationText: string;
   isMaxDoseExceeded: boolean;
+  isOutOfRange: boolean;
+  outOfRangeReason?: string;
+  rawCalculatedSingleMg: number;
+  rawCalculatedDailyMg: number;
   maxDailyDoseMg: number;
   maxSingleDoseMg?: number;
+  standardMinDoseMgKg?: number;
+  standardMaxDoseMgKg?: number;
   estimatedTotalVolumeMl?: number;
   bottlesNeeded?: number;
   formattedPrescription: string;
@@ -90,6 +96,8 @@ export function calculateMedicationDose(params: {
   standardBottleMl?: number;
   maxDailyDoseMg: number;
   maxSingleDoseMg?: number;
+  standardMinDoseMgKg?: number;
+  standardMaxDoseMgKg?: number;
   route: string;
   instructionsNote?: string;
 }): DoseCalculationResult {
@@ -109,6 +117,8 @@ export function calculateMedicationDose(params: {
     standardBottleMl,
     maxDailyDoseMg,
     maxSingleDoseMg,
+    standardMinDoseMgKg,
+    standardMaxDoseMgKg,
     route = 'oral',
     instructionsNote
   } = params;
@@ -128,15 +138,54 @@ export function calculateMedicationDose(params: {
     calculatedSingleMg = calculatedDailyMg / Math.max(1, frequencyPerDay);
   }
 
-  // Check caps
+  const rawCalculatedSingleMg = Number(calculatedSingleMg.toFixed(1));
+  const rawCalculatedDailyMg = Number(calculatedDailyMg.toFixed(1));
+
+  // Check therapeutic limits and ceiling
   let isMaxDoseExceeded = false;
+  let isOutOfRange = false;
+  const reasons: string[] = [];
+
+  // Exceeds standard maximum daily dose
+  if (maxDailyDoseMg && rawCalculatedDailyMg > maxDailyDoseMg) {
+    isMaxDoseExceeded = true;
+    isOutOfRange = true;
+    reasons.push(
+      `La dosis diaria calculada (${rawCalculatedDailyMg} mg/día) supera el límite máximo seguro definido (${maxDailyDoseMg} mg/día).`
+    );
+  }
+
+  // Exceeds standard maximum single dose
+  if (maxSingleDoseMg && rawCalculatedSingleMg > maxSingleDoseMg) {
+    isMaxDoseExceeded = true;
+    isOutOfRange = true;
+    reasons.push(
+      `La dosis por toma calculada (${rawCalculatedSingleMg} mg/toma) supera el límite máximo seguro por toma (${maxSingleDoseMg} mg).`
+    );
+  }
+
+  // Exceeds standard upper therapeutic limit in mg/kg
+  if (standardMaxDoseMgKg && doseMgPerKg > standardMaxDoseMgKg) {
+    isOutOfRange = true;
+    reasons.push(
+      `La dosis indicada (${doseMgPerKg} mg/kg${isDosePerKgPerDose ? '/toma' : '/día'}) supera el límite superior estándar (${standardMaxDoseMgKg} mg/kg${isDosePerKgPerDose ? '/toma' : '/día'}).`
+    );
+  }
+
+  // Below standard lower therapeutic limit in mg/kg
+  if (standardMinDoseMgKg && doseMgPerKg < standardMinDoseMgKg) {
+    isOutOfRange = true;
+    reasons.push(
+      `La dosis indicada (${doseMgPerKg} mg/kg${isDosePerKgPerDose ? '/toma' : '/día'}) está por debajo del rango terapéutico mínimo (${standardMinDoseMgKg} mg/kg${isDosePerKgPerDose ? '/toma' : '/día'}).`
+    );
+  }
+
+  // Apply maximum caps to protect patient
   if (maxSingleDoseMg && calculatedSingleMg > maxSingleDoseMg) {
     calculatedSingleMg = maxSingleDoseMg;
-    isMaxDoseExceeded = true;
   }
   if (maxDailyDoseMg && calculatedDailyMg > maxDailyDoseMg) {
     calculatedDailyMg = maxDailyDoseMg;
-    isMaxDoseExceeded = true;
     calculatedSingleMg = Math.min(calculatedSingleMg, calculatedDailyMg / Math.max(1, frequencyPerDay));
   }
 
@@ -221,8 +270,14 @@ export function calculateMedicationDose(params: {
     intervalHours,
     durationText: durationDaysStr,
     isMaxDoseExceeded,
+    isOutOfRange,
+    outOfRangeReason: reasons.join(' '),
+    rawCalculatedSingleMg,
+    rawCalculatedDailyMg,
     maxDailyDoseMg,
     maxSingleDoseMg,
+    standardMinDoseMgKg,
+    standardMaxDoseMgKg,
     estimatedTotalVolumeMl,
     bottlesNeeded,
     formattedPrescription,

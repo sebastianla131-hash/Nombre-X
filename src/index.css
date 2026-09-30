@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Ocultar barra de desplazamiento manteniendo la funcionalidad de desplazamiento */
 html,
 body,

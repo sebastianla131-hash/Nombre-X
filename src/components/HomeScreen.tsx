@@ -1,44 +1,83 @@
 import React from 'react';
-import { User, ChevronRight } from 'lucide-react';
+import { ArrowRight, User, Sun, Moon } from 'lucide-react';
 import { MedFormulaLogo } from './MedFormulaLogo';
+import { PatientProfile } from '../types';
 
 interface HomeScreenProps {
   onOpenPatientData: () => void;
+  onContinueToCalculators?: () => void;
+  patient?: PatientProfile;
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPatientData }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({
+  onOpenPatientData,
+  onContinueToCalculators,
+  patient,
+  isDarkMode = false,
+  onToggleDarkMode
+}) => {
+  const hasPatientData = Boolean(patient && patient.weightKg > 0);
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 h-full overflow-hidden select-none">
-      <div className="w-full max-w-xs flex flex-col items-center space-y-8 my-auto">
-        {/* Logo de la app en la parte superior encima de Datos del paciente */}
-        <div className="animate-in fade-in duration-300">
-          <MedFormulaLogo variant="full" size="lg" showSubtitle={true} />
+    <div className="flex-1 h-full w-full flex flex-col items-center justify-center p-6 text-center select-none bg-white dark:bg-slate-900 relative transition-colors overflow-y-auto">
+      {/* Top right theme toggle */}
+      {onToggleDarkMode && (
+        <div className="absolute top-4 right-4">
+          <button
+            type="button"
+            onClick={onToggleDarkMode}
+            title={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer"
+            aria-label="Alternar modo oscuro o claro"
+          >
+            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+          </button>
+        </div>
+      )}
+
+      <div className="w-full max-w-sm flex flex-col items-center space-y-7 my-auto">
+        {/* Minimalist Logo & Title */}
+        <div className="space-y-2.5">
+          <MedFormulaLogo variant="icon" size="lg" className="mx-auto" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Med<span className="text-blue-600 dark:text-blue-400">Formula</span>
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+              Dosificación farmacológica clínica según peso, edad e indicación
+            </p>
+          </div>
         </div>
 
-        {/* Acceso a Datos del paciente en la mitad de la página */}
-        <button
-          type="button"
-          onClick={onOpenPatientData}
-          className="w-full bg-white dark:bg-slate-900 border-2 border-blue-600 hover:border-blue-700 dark:border-blue-500 rounded-2xl p-4.5 shadow-lg shadow-blue-900/10 hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-between gap-4 group cursor-pointer"
-          aria-label="Datos del paciente"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-blue-700 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-800 transition-colors shrink-0">
-              <User className="w-6 h-6" />
-            </div>
-            <div className="text-left">
-              <span className="block text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
-                Datos del paciente
-              </span>
-            </div>
-          </div>
-          <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-blue-700 group-hover:bg-blue-50 dark:group-hover:bg-slate-700 transition-all shrink-0">
-            <ChevronRight className="w-4 h-4" />
-          </div>
-        </button>
+        {/* Action Controls */}
+        <div className="w-full space-y-2.5 pt-2">
+          <button
+            type="button"
+            onClick={onOpenPatientData}
+            className="w-full py-3.5 px-5 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-xs active:scale-[0.99] cursor-pointer"
+          >
+            <User className="w-4 h-4 opacity-80" />
+            <span>Ingresar datos del paciente</span>
+            <ArrowRight className="w-4 h-4 opacity-80" />
+          </button>
+
+          {hasPatientData && onContinueToCalculators && patient && (
+            <button
+              type="button"
+              onClick={onContinueToCalculators}
+              className="w-full py-2.5 px-4 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer text-center"
+            >
+              Continuar con paciente actual ({patient.weightKg} kg · {patient.ageYears}a) →
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 };
+
+
 
 
