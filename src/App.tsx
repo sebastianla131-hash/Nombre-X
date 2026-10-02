@@ -5,6 +5,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Pill, Star, Clock } from 'lucide-react';
+import Fuse from 'fuse.js';
 import { Header } from './components/Header';
 import { BottomNav, TabType } from './components/BottomNav';
 import { DrugCard } from './components/DrugCard';
@@ -16,6 +17,9 @@ import { PhoneContainer } from './components/PhoneContainer';
 import { HomeScreen } from './components/HomeScreen';
 import { PatientProfileView } from './components/PatientProfileView';
 import { ToastProvider } from './components/ui/ToastProvider';
+import { ProtocolsView } from './views/ProtocolsView';
+import { CrashCartView } from './views/CrashCartView';
+import { usePatientStore } from './store/patientStore';
 import { MEDICATIONS } from './data/medications';
 import { Medication, PatientProfile } from './types';
 
@@ -77,7 +81,10 @@ export default function App() {
     }
   }, [currentScreen, selectedDrug, activeTab]);
 
-  // Persistent Favorites & Patient Profile
+  // Persistent Favorites & Patient Profile (Zustand Global Store + Local)
+  const patient = usePatientStore((state) => state.patient);
+  const setPatient = usePatientStore((state) => state.setPatient);
+
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('mdformulary_favs');
@@ -97,36 +104,6 @@ export default function App() {
     }
   });
 
-  const [patient, setPatient] = useState<PatientProfile>(() => {
-    try {
-      const saved = localStorage.getItem('mdformulary_patient');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (!parsed.heightCm) {
-          parsed.heightCm = parsed.weightKg >= 45 ? 170 : 95;
-        }
-        return parsed;
-      }
-      return {
-        weightKg: 14,
-        heightCm: 95,
-        ageYears: 3,
-        ageMonths: 0,
-        gender: 'male',
-        serumCreatinineMgDl: 0.7
-      };
-    } catch {
-      return {
-        weightKg: 14,
-        heightCm: 95,
-        ageYears: 3,
-        ageMonths: 0,
-        gender: 'male',
-        serumCreatinineMgDl: 0.7
-      };
-    }
-  });
-
   // Save to localStorage
   useEffect(() => {
     try {
@@ -139,12 +116,6 @@ export default function App() {
       localStorage.setItem('mdformulary_recents', JSON.stringify(recentDrugIds));
     } catch {}
   }, [recentDrugIds]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('mdformulary_patient', JSON.stringify(patient));
-    } catch {}
-  }, [patient]);
 
   const toggleFavorite = (drugId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -161,35 +132,33 @@ export default function App() {
       .slice(0, 3);
   }, [recentDrugIds]);
 
-  // Filtered Medications: Only favorites by default, or live search results when searching
+  // Fuse.js Index for Typo-Tolerant Fuzzy Search (ej. 'amoxisilina' -> 'Amoxicilina')
+  const fuse = useMemo(() => {
+    return new Fuse(MEDICATIONS, {
+      keys: [
+        { name: 'name', weight: 0.45 },
+        { name: 'commercialNames', weight: 0.25 },
+        { name: 'therapeuticClass', weight: 0.15 },
+        { name: 'indications.name', weight: 0.1 },
+        { name: 'indications.description', weight: 0.05 },
+      ],
+      threshold: 0.38, // Tolerates typos while maintaining medical precision
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+    });
+  }, []);
+
+  // Filtered Medications: Only favorites by default, or typo-tolerant Fuse search results
   const filteredMedications = useMemo(() => {
-    const normalize = (str: string) =>
-      str
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-
-    const query = normalize(searchQuery);
-    const searchTerms = query.split(/\s+/).filter(Boolean);
-
-    if (searchTerms.length > 0) {
-      return MEDICATIONS.filter((med) => {
-        const nameNorm = normalize(med.name);
-        const classNorm = normalize(med.therapeuticClass);
-        const commNorm = med.commercialNames.map(normalize).join(' ');
-        const indNorm = med.indications
-          .map((i) => `${normalize(i.name)} ${i.description ? normalize(i.description) : ''}`)
-          .join(' ');
-
-        const fullCorpus = `${nameNorm} ${classNorm} ${commNorm} ${indNorm}`;
-        return searchTerms.every((term) => fullCorpus.includes(term));
-      });
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      return MEDICATIONS.filter((med) => favorites.includes(med.id));
     }
 
-    // Default: ONLY show the list of favorites!
-    return MEDICATIONS.filter((med) => favorites.includes(med.id));
-  }, [searchQuery, favorites]);
+    // Fuse.js fuzzy search with ranking
+    const searchResults = fuse.search(trimmed);
+    return searchResults.map((res) => res.item);
+  }, [searchQuery, favorites, fuse]);
 
   // Handle drug selection & update recent history (top 3)
   const handleSelectDrug = (drug: Medication) => {
@@ -217,6 +186,8 @@ export default function App() {
         <HomeScreen
           onOpenPatientData={() => setCurrentScreen('patient_profile')}
           onContinueToCalculators={() => setCurrentScreen('main')}
+          onOpenCrashCart={() => handleTabChange('crash_cart')}
+          onOpenProtocols={() => handleTabChange('protocols')}
           patient={patient}
           isDarkMode={isDarkMode}
           onToggleDarkMode={handleToggleDarkMode}
@@ -252,6 +223,7 @@ export default function App() {
               setSearchQuery('');
               setActiveTab('favorites');
             }}
+            onOpenCrashCart={() => handleTabChange('crash_cart')}
             onBackToHome={() => setCurrentScreen('home')}
             isDarkMode={isDarkMode}
             onToggleDarkMode={handleToggleDarkMode}
@@ -272,6 +244,22 @@ export default function App() {
                 isFavorite={favorites.includes(selectedDrug.id)}
                 onToggleFavorite={() => toggleFavorite(selectedDrug.id)}
               />
+            ) : activeTab === 'protocols' ? (
+              // MIS PROTOCOLOS (COMBOS ONE-TAP)
+              <div className="p-4">
+                <ProtocolsView
+                  patient={patient}
+                  onSelectMedication={(medId) => {
+                    const med = MEDICATIONS.find((m) => m.id === medId);
+                    if (med) handleSelectDrug(med);
+                  }}
+                />
+              </div>
+            ) : activeTab === 'crash_cart' ? (
+              // MODO CÓDIGO AZUL (CRASH CART / REANIMACIÓN)
+              <div className="p-4">
+                <CrashCartView patient={patient} onUpdatePatient={setPatient} />
+              </div>
             ) : activeTab === 'renal' ? (
               // RENAL ADJUSTMENT CALCULATOR
               <RenalAdjustmentCalculator

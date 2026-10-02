@@ -197,14 +197,19 @@ export interface CriticalHardStop {
 }
 
 // Clinical Database schema types (SRS 2025 / WHO AWaRe)
-export interface DrugAlert {
-  type: 'hepatic' | 'obstetric' | 'renal' | 'blackbox' | 'allergy';
-  condition: (p: PatientProfile) => boolean;
-  message: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+export type Sex = 'M' | 'F';
+export type Trimester = 0 | 1 | 2 | 3;
+export type AWaReCategory = 'Access' | 'Watch' | 'Reserve' | 'N/A';
+
+export interface DrugDBConcentration {
+  label: string;
+  mg: number;
+  ml: number;
+  form: 'suspension' | 'tablet' | 'ampoule' | 'drops';
+  commercialVolumeMl?: number;
 }
 
-export interface DrugIndicationDB {
+export interface DrugDBIndication {
   name: string;
   doseMgPerKgDay: number;
   maxDailyDoseMg: number;
@@ -213,11 +218,11 @@ export interface DrugIndicationDB {
   defaultDurations: number[];
 }
 
-export interface DrugConcentrationDB {
-  label: string;
-  mg: number;
-  ml: number;
-  form: 'suspension' | 'drops' | 'tablet' | 'ampoule';
+export interface DrugDBAlert {
+  type: 'obstetric' | 'renal' | 'hepatic' | 'blackbox';
+  conditionDefinition: string;
+  message: string;
+  severity: 'high' | 'critical';
 }
 
 export interface Drug {
@@ -226,11 +231,12 @@ export interface Drug {
   commercialNames: string[];
   atc: string;
   group: string;
-  aware: 'Access' | 'Watch' | 'Reserve';
+  aware: AWaReCategory;
   routes: string[];
-  indications: DrugIndicationDB[];
-  concentrations: DrugConcentrationDB[];
-  alerts: DrugAlert[];
+  indications: DrugDBIndication[];
+  concentrations: DrugDBConcentration[];
+  alerts: DrugDBAlert[];
+  isCrashCart?: boolean;
 }
 
 // Body Weight Analysis (IBW / ABW for Obesity)

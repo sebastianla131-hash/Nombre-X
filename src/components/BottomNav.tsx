@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pill, Activity, Droplets, Calculator, Star } from 'lucide-react';
+import { Pill, Sparkles, Flame, Activity, Droplets, Star } from 'lucide-react';
 
-export type TabType = 'drugs' | 'renal' | 'infusions' | 'custom' | 'favorites';
+export type TabType = 'drugs' | 'protocols' | 'crash_cart' | 'renal' | 'infusions' | 'custom' | 'favorites';
 
 interface BottomNavProps {
   activeTab: TabType | string | null;
@@ -19,6 +19,7 @@ interface TabItem {
   hoverColor: string;
   badgeBg: string;
   fillOnActive?: boolean;
+  isEmergency?: boolean;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
@@ -37,8 +38,27 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       badgeBg: 'bg-blue-600',
     },
     {
+      id: 'protocols',
+      label: 'Protocolos',
+      icon: Sparkles,
+      activeColor: 'text-indigo-600 dark:text-indigo-400',
+      activeBg: 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200/60 dark:border-indigo-900/60',
+      hoverColor: 'hover:text-indigo-600 dark:hover:text-indigo-400',
+      badgeBg: 'bg-indigo-600',
+    },
+    {
+      id: 'crash_cart',
+      label: 'Cód. Azul',
+      icon: Flame,
+      activeColor: 'text-rose-600 dark:text-rose-400',
+      activeBg: 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-900',
+      hoverColor: 'hover:text-rose-600 dark:hover:text-rose-400',
+      badgeBg: 'bg-rose-600',
+      isEmergency: true,
+    },
+    {
       id: 'renal',
-      label: 'Ajuste Renal',
+      label: 'Renal',
       icon: Activity,
       activeColor: 'text-purple-600 dark:text-purple-400',
       activeBg: 'bg-purple-50 dark:bg-purple-950/60 border-purple-200/60 dark:border-purple-900/60',
@@ -55,15 +75,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       badgeBg: 'bg-cyan-600',
     },
     {
-      id: 'custom',
-      label: 'Calc Libre',
-      icon: Calculator,
-      activeColor: 'text-emerald-600 dark:text-emerald-400',
-      activeBg: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200/60 dark:border-emerald-900/60',
-      hoverColor: 'hover:text-emerald-600 dark:hover:text-emerald-400',
-      badgeBg: 'bg-emerald-600',
-    },
-    {
       id: 'favorites',
       label: 'Favoritos',
       icon: Star,
@@ -78,7 +89,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
   return (
     <nav className="sticky bottom-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 transition-colors shrink-0 shadow-lg">
-      <div className="grid grid-cols-5 items-center h-15 max-w-lg mx-auto px-1">
+      <div className="grid grid-cols-6 items-center h-15 max-w-lg mx-auto px-0.5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -92,18 +103,20 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             >
               {/* Contenedor del Icono con fondo coloreado al estar activo */}
               <div
-                className={`relative px-2.5 py-1 rounded-xl transition-all duration-200 flex items-center justify-center ${
+                className={`relative px-2 py-1 rounded-xl transition-all duration-200 flex items-center justify-center ${
                   isActive
                     ? `${tab.activeBg} ${tab.activeColor} border shadow-2xs scale-105`
+                    : tab.isEmergency
+                    ? 'text-rose-500 hover:text-rose-600 dark:text-rose-400 group-hover:scale-105'
                     : `text-slate-400 dark:text-slate-500 ${tab.hoverColor} group-hover:scale-105`
                 }`}
               >
                 <Icon
-                  className={`w-4.5 h-4.5 transition-transform ${
+                  className={`w-4 h-4 transition-transform ${
                     isActive
-                      ? `stroke-[2.3] ${tab.fillOnActive ? 'fill-amber-400 dark:fill-amber-500' : ''}`
-                      : 'stroke-[1.7]'
-                  }`}
+                      ? `stroke-[2.4] ${tab.fillOnActive ? 'fill-amber-400 dark:fill-amber-500' : ''}`
+                      : 'stroke-[1.8]'
+                  } ${tab.isEmergency && !isActive ? 'animate-pulse' : ''}`}
                 />
 
                 {/* Badge de contador con animación */}
@@ -118,9 +131,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
               {/* Etiqueta de texto coloreada */}
               <span
-                className={`text-[10px] tracking-tight mt-0.5 whitespace-nowrap transition-colors ${
+                className={`text-[9.5px] tracking-tight mt-0.5 whitespace-nowrap transition-colors ${
                   isActive
                     ? `${tab.activeColor} font-bold`
+                    : tab.isEmergency
+                    ? 'text-rose-600 dark:text-rose-400 font-semibold'
                     : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 font-medium'
                 }`}
               >

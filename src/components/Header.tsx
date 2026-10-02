@@ -5,7 +5,8 @@ import {
   User,
   Star,
   Sun,
-  Moon
+  Moon,
+  Flame,
 } from 'lucide-react';
 import { PatientProfile, DrugCategory } from '../types';
 
@@ -36,6 +37,7 @@ interface HeaderProps {
   onOpenPatientModal: () => void;
   favoritesCount: number;
   onOpenFavorites: () => void;
+  onOpenCrashCart?: () => void;
   onBackToHome?: () => void;
   selectedCategory?: DrugCategory;
   onSelectCategory?: (cat: DrugCategory) => void;
@@ -51,6 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPatientModal,
   favoritesCount,
   onOpenFavorites,
+  onOpenCrashCart,
   onBackToHome,
   isDarkMode = false,
   onToggleDarkMode
@@ -86,6 +89,19 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Quick Patient & Favorites Controls & Theme Switcher */}
         <div className="flex items-center gap-1.5">
+          {onOpenCrashCart && (
+            <button
+              type="button"
+              onClick={onOpenCrashCart}
+              title="Código Azul (Crash Cart)"
+              className="flex items-center gap-1 text-[11px] font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-300 px-2 py-1.5 rounded-lg transition-colors cursor-pointer"
+              aria-label="Código Azul"
+            >
+              <Flame className="w-3.5 h-3.5 fill-rose-500 text-rose-600 animate-pulse" />
+              <span className="hidden sm:inline">Cód. Azul</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onOpenPatientModal}
