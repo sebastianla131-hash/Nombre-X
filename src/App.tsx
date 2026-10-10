@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Pill, Star, Clock } from 'lucide-react';
+import { Pill, Star, Clock, Search } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { Header } from './components/Header';
 import { BottomNav, TabType } from './components/BottomNav';
@@ -65,6 +65,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('drugs');
   const [selectedDrug, setSelectedDrug] = useState<Medication | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [catalogFilter, setCatalogFilter] = useState<'favorites' | 'all'>('favorites');
+  const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
 
   // Always scroll to top on screen, drug detail, or tab change
   useEffect(() => {
@@ -148,17 +150,76 @@ export default function App() {
     });
   }, []);
 
-  // Filtered Medications: Only favorites by default, or typo-tolerant Fuse search results
+  // Filtered Medications: Favorites or All by category, or typo-tolerant Fuse search results
   const filteredMedications = useMemo(() => {
     const trimmed = searchQuery.trim();
-    if (!trimmed) {
+    if (trimmed) {
+      const searchResults = fuse.search(trimmed);
+      return searchResults.map((res) => res.item);
+    }
+
+    if (catalogFilter === 'favorites') {
       return MEDICATIONS.filter((med) => favorites.includes(med.id));
     }
 
-    // Fuse.js fuzzy search with ranking
-    const searchResults = fuse.search(trimmed);
-    return searchResults.map((res) => res.item);
-  }, [searchQuery, favorites, fuse]);
+    if (selectedCategory === 'Todos') {
+      return MEDICATIONS;
+    }
+
+    if (selectedCategory === 'Analgésicos') {
+      return MEDICATIONS.filter(
+        (med) =>
+          med.category === 'Analgesia / AINEs' ||
+          med.category === 'Analgésicos' ||
+          med.category.includes('Analgés')
+      );
+    }
+
+    if (selectedCategory === 'Respiratorio') {
+      return MEDICATIONS.filter((med) =>
+        med.category.toLowerCase().includes('respiratorio')
+      );
+    }
+
+    if (selectedCategory === 'Alergia' || selectedCategory === 'Alergia / Resfriado') {
+      return MEDICATIONS.filter(
+        (med) =>
+          med.category.toLowerCase().includes('alergia') ||
+          med.category.toLowerCase().includes('resfriado')
+      );
+    }
+
+    if (selectedCategory === 'Expectorantes') {
+      return MEDICATIONS.filter(
+        (med) =>
+          med.therapeuticClass.toLowerCase().includes('expectorante') ||
+          med.therapeuticClass.toLowerCase().includes('mucolítico') ||
+          med.therapeuticClass.toLowerCase().includes('mucorregulador') ||
+          med.therapeuticClass.toLowerCase().includes('secretolítico') ||
+          (med.badgeText?.toLowerCase().includes('expectorante') ?? false) ||
+          med.name.toLowerCase().includes('guaifenesina') ||
+          med.name.toLowerCase().includes('bromhexina') ||
+          med.name.toLowerCase().includes('carbocisteína') ||
+          med.name.toLowerCase().includes('ambroxol') ||
+          med.name.toLowerCase().includes('erdosteína') ||
+          med.name.toLowerCase().includes('dornasa') ||
+          med.name.toLowerCase().includes('hedera') ||
+          med.name.toLowerCase().includes('yoduro')
+      );
+    }
+
+    if (selectedCategory === 'Antídotos') {
+      return MEDICATIONS.filter(
+        (med) =>
+          med.category.toLowerCase().includes('antídotos') ||
+          med.category.toLowerCase().includes('toxicología')
+      );
+    }
+
+    return MEDICATIONS.filter((med) =>
+      med.category.toLowerCase().includes(selectedCategory.toLowerCase())
+    );
+  }, [searchQuery, favorites, fuse, catalogFilter, selectedCategory]);
 
   // Handle drug selection & update recent history (top 3)
   const handleSelectDrug = (drug: Medication) => {
@@ -221,7 +282,8 @@ export default function App() {
             onOpenFavorites={() => {
               setSelectedDrug(null);
               setSearchQuery('');
-              setActiveTab('favorites');
+              setCatalogFilter('favorites');
+              setActiveTab('drugs');
             }}
             onOpenCrashCart={() => handleTabChange('crash_cart')}
             onBackToHome={() => setCurrentScreen('home')}
@@ -315,11 +377,92 @@ export default function App() {
                   </div>
                 )}
 
+                {/* Segmented Selector: Favoritos vs Catálogo General */}
+                {!searchQuery && (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                      <button
+                        type="button"
+                        onClick={() => setCatalogFilter('favorites')}
+                        className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          catalogFilter === 'favorites'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        <Star className={`w-3.5 h-3.5 ${favorites.length > 0 ? 'fill-amber-400 text-amber-500' : ''}`} />
+                        <span>Favoritos ({favorites.length})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCatalogFilter('all')}
+                        className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          catalogFilter === 'all'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        <Pill className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Catálogo General ({MEDICATIONS.length})</span>
+                      </button>
+                    </div>
+
+                    {catalogFilter === 'all' && (
+                      <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar -mx-4 px-4">
+                        {[
+                          'Todos',
+                          'Alergia',
+                          'Expectorantes',
+                          'Antibióticos',
+                          'Cardiovascular',
+                          'Analgésicos',
+                          'Gastroenterología',
+                          'Endocrinología',
+                          'Respiratorio',
+                          'Corticoides',
+                          'Ginecología',
+                          'Antídotos'
+                        ].map((cat) => {
+                          const isSelected = selectedCategory === cat;
+                          return (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => setSelectedCategory(cat)}
+                              className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Header del Listado */}
                 <div className="flex items-center justify-between text-xs px-1 py-1 text-slate-500 dark:text-slate-400">
                   <span className="font-semibold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-                    <span>{searchQuery ? `Búsqueda: "${searchQuery}"` : 'Medicamentos Favoritos'}</span>
+                    {searchQuery ? (
+                      <>
+                        <Search className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Búsqueda: "{searchQuery}"</span>
+                      </>
+                    ) : catalogFilter === 'favorites' ? (
+                      <>
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                        <span>Medicamentos Favoritos</span>
+                      </>
+                    ) : (
+                      <>
+                        <Pill className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Catálogo: {selectedCategory}</span>
+                      </>
+                    )}
                   </span>
                   <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
                     {filteredMedications.length} {filteredMedications.length === 1 ? 'fármaco' : 'fármacos'}

@@ -181,14 +181,15 @@ console.log('====================================================\n');
     volumeMl: 5,
     form: 'suspension',
     singleDoseQuantity: 10,
+    singleDoseMg: 500,
     unitLabel: 'mL',
     route: 'oral',
     intervalHours: 8,
     durationDays: 7,
   });
 
-  const expected = 'Amoxicilina, 250mg/5mL, Administrar 10 mL Vía Oral, cada 8 horas, por 7 días.';
-  assert(text === expected, 'EHR prescription string format exact match', `Got "${text}"`);
+  const expected = 'Amoxicilina 500 mg Vía Oral, cada 8 horas, por 7 días.';
+  assert(text === expected, 'EHR prescription string format exact match without preparation mL', `Got "${text}"`);
 }
 
 console.log('\n====================================================');

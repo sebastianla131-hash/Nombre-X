@@ -12,6 +12,20 @@ import { NEUROLOGY_ANTIDOTES_MEDICATIONS } from './neurology_antidotes';
 import { CARDIOVASCULAR_MEDICATIONS } from './cardiovascular';
 import { ENDOCRINOLOGY_MEDICATIONS } from './endocrinology';
 import { GYNECOLOGY_MEDICATIONS } from './gynecology';
+import { MEDSCAPE_ANTIINFECTIVES } from './medscape_antiinfectives';
+import { MEDSCAPE_CARDIOVASCULAR } from './medscape_cardio';
+import { MEDSCAPE_ANALGESICS } from './medscape_analgesics';
+import { MEDSCAPE_GASTRO } from './medscape_gastro';
+import { MEDSCAPE_ENDOCRINOLOGY } from './medscape_endocrine';
+import { MEDSCAPE_RESPIRATORY } from './medscape_respiratory';
+import { MEDSCAPE_NEUROLOGY_PSYCHIATRY } from './medscape_neurology_psychiatry';
+import { MEDSCAPE_SPECIALTIES } from './medscape_specialties';
+import { MEDSCAPE_ALLERGY_COLD } from './medscape_allergy_cold';
+import { MEDSCAPE_EXPECTORANTS } from './medscape_expectorants';
+import { MEDSCAPE_CARDIOVASCULAR_COMPLETE } from './medscape_cardiovascular_complete';
+import { MEDSCAPE_CARDIOVASCULAR_EXPANSION } from './medscape_cardiovascular_expansion';
+import { MEDSCAPE_CARDIOVASCULAR_SWEEP } from './medscape_cardiovascular_sweep';
+import { MEDSCAPE_ANTIMICROBIALS_COMPLETE } from './medscape_antimicrobials_complete';
 
 // =========================================================================
 // OBLIGATORY TYPESCRIPT INTERFACES
@@ -647,7 +661,7 @@ export const drugToMedication = transformDrugToMedication;
 const PRIMARY_DB_MEDICATIONS = DRUG_DB.map(transformDrugToMedication);
 const existingIds = new Set(PRIMARY_DB_MEDICATIONS.map((m) => m.id));
 
-const SUPPLEMENTARY_MEDS = [
+const CANDIDATE_SUPPLEMENTARY_MEDS: Medication[] = [
   ...ANTIBIOTICS_MEDICATIONS,
   ...ANALGESICS_MEDICATIONS,
   ...GASTRO_MEDICATIONS,
@@ -656,7 +670,31 @@ const SUPPLEMENTARY_MEDS = [
   ...CARDIOVASCULAR_MEDICATIONS,
   ...ENDOCRINOLOGY_MEDICATIONS,
   ...GYNECOLOGY_MEDICATIONS,
-].filter((m) => !existingIds.has(m.id));
+  ...MEDSCAPE_ANTIINFECTIVES,
+  ...MEDSCAPE_CARDIOVASCULAR,
+  ...MEDSCAPE_ANALGESICS,
+  ...MEDSCAPE_GASTRO,
+  ...MEDSCAPE_ENDOCRINOLOGY,
+  ...MEDSCAPE_RESPIRATORY,
+  ...MEDSCAPE_NEUROLOGY_PSYCHIATRY,
+  ...MEDSCAPE_SPECIALTIES,
+  ...MEDSCAPE_ALLERGY_COLD,
+  ...MEDSCAPE_EXPECTORANTS,
+  ...MEDSCAPE_CARDIOVASCULAR_COMPLETE,
+  ...MEDSCAPE_CARDIOVASCULAR_EXPANSION,
+  ...MEDSCAPE_CARDIOVASCULAR_SWEEP,
+  ...MEDSCAPE_ANTIMICROBIALS_COMPLETE,
+];
+
+const seenIds = new Set(PRIMARY_DB_MEDICATIONS.map((m) => m.id));
+const SUPPLEMENTARY_MEDS: Medication[] = [];
+
+for (const med of CANDIDATE_SUPPLEMENTARY_MEDS) {
+  if (!seenIds.has(med.id)) {
+    seenIds.add(med.id);
+    SUPPLEMENTARY_MEDS.push(med);
+  }
+}
 
 /**
  * Global combined medications list for search, detail calculators and directories

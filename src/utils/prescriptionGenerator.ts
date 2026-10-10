@@ -10,6 +10,7 @@ export interface PrescriptionGenerationParams {
   volumeMl?: number;
   form?: string;
   singleDoseQuantity: number;
+  singleDoseMg?: number;
   unitLabel: string;
   route: RouteOfAdmin;
   intervalHours: number;
@@ -94,53 +95,82 @@ export function getDefaultPatientInstructions(form?: string): string {
 }
 
 /**
- * 1. HIS / EHR Prescription String:
+ * Formats the clinical dose in active mass/potency (mg, g, mcg, UI) without preparation liquid volumes (mL).
+ * Nursing and hospital pharmacy determine the exact volume and dilution based on their preparation protocols.
+ */
+export function formatClinicalDose(params: PrescriptionGenerationParams): string {
+  const { singleDoseMg, singleDoseQuantity, unitLabel, amountMg, volumeMl } = params;
+
+  // 1. Determine active dose in mg or international units
+  let doseMg = singleDoseMg;
+
+  if (doseMg === undefined || doseMg <= 0) {
+    if (unitLabel === 'mL' && amountMg && volumeMl && volumeMl > 0) {
+      doseMg = (singleDoseQuantity * amountMg) / volumeMl;
+    } else if (unitLabel === 'gotas' && amountMg && volumeMl && volumeMl > 0) {
+      doseMg = (singleDoseQuantity / 20) * (amountMg / volumeMl);
+    } else if (['comprimido', 'comprimidos', 'cápsula', 'cápsulas', 'tableta', 'tabletas'].includes(unitLabel) && amountMg) {
+      doseMg = singleDoseQuantity * amountMg;
+    } else if (['mg', 'mcg', 'g', 'UI'].includes(unitLabel)) {
+      doseMg = singleDoseQuantity;
+    }
+  }
+
+  // 2. Units format (UI)
+  if (unitLabel === 'UI' || (amountMg && amountMg >= 50000 && !volumeMl)) {
+    const uiValue = doseMg !== undefined ? doseMg : singleDoseQuantity;
+    return `${Math.round(uiValue).toLocaleString('es-ES')} UI`;
+  }
+
+  // 3. Mass format (g, mg, mcg)
+  if (doseMg !== undefined && doseMg > 0) {
+    // If dose is integer multiple of grams (e.g. 1000 mg -> 1 g, 2000 mg -> 2 g)
+    if (doseMg >= 1000 && doseMg % 1000 === 0) {
+      return `${doseMg / 1000} g`;
+    }
+    // If microgram range (e.g. 0.05 mg = 50 mcg)
+    if (doseMg < 1 && doseMg >= 0.001) {
+      const mcg = Math.round(doseMg * 1000);
+      return `${mcg} mcg (${doseMg} mg)`;
+    }
+    // Standard milligram dose
+    const formattedMg = Number.isInteger(doseMg) ? doseMg.toString() : parseFloat(doseMg.toFixed(2)).toString();
+    return `${formattedMg} mg`;
+  }
+
+  // Fallback if no mass could be determined
+  return `${singleDoseQuantity} ${unitLabel}`;
+}
+
+/**
+ * 1. HIS / EHR Prescription String (Texto para Historia Clínica / Orden Médica):
  * Format:
- * "[Medicamento], [Concentración], Administrar [Dosis] [Vía], cada [Frecuencia]h, por [Duración]d. Dispensar: [N] frascos."
+ * "[Medicamento] [Dosis Activa en mg/g/UI] [Vía], cada [Frecuencia] horas, por [Duración] días."
+ * (NO incluye volumen en mL ni frascos a dispensar; la preparación líquida depende de enfermería o farmacia)
  */
 export function generateHisPrescription(params: PrescriptionGenerationParams): string {
   const {
     medicationName,
-    concentrationName,
-    amountMg,
-    volumeMl,
-    form,
-    singleDoseQuantity,
-    unitLabel,
     route,
     intervalHours,
     durationDays,
-    bottlesNeeded,
   } = params;
 
-  const concStr = formatConcentrationShort({ concentrationName, amountMg, volumeMl, form });
+  const doseStr = formatClinicalDose(params);
   const routeStr = formatRouteLabel(route);
-  const bottlePart = bottlesNeeded && bottlesNeeded > 0 ? ` Dispensar: ${bottlesNeeded} frascos.` : '';
 
-  return `${medicationName}, ${concStr}, Administrar ${singleDoseQuantity} ${unitLabel} ${routeStr}, cada ${intervalHours}h, por ${durationDays}d.${bottlePart}`;
+  if (durationDays === 1 && (intervalHours >= 24 || intervalHours === 0)) {
+    return `${medicationName} ${doseStr} ${routeStr}, en dosis única.`;
+  }
+
+  return `${medicationName} ${doseStr} ${routeStr}, cada ${intervalHours} horas, por ${durationDays} días.`;
 }
 
 /**
  * Backwards compatibility alias for EHR
  */
 export function generateEhrPrescription(params: PrescriptionGenerationParams): string {
-  const {
-    medicationName,
-    concentrationName,
-    amountMg,
-    volumeMl,
-    form,
-    singleDoseQuantity,
-    unitLabel,
-    route,
-    intervalHours,
-    durationDays,
-  } = params;
-
-  const concStr = formatConcentrationShort({ concentrationName, amountMg, volumeMl, form });
-  const routeStr = formatRouteLabel(route);
-
-  return `${medicationName}, ${concStr}, Administrar ${singleDoseQuantity} ${unitLabel} ${routeStr}, cada ${intervalHours} horas, por ${durationDays} días.`;
+  return generateHisPrescription(params);
 }
 
 /**

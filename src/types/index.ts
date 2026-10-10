@@ -15,9 +15,10 @@ export type DrugCategory =
   | 'Urgencias / Respiratorio'
   | 'Gastroenterología'
   | 'Corticoides'
+  | 'Alergia / Resfriado'
   | 'Antídotos / Toxicología';
 
-export type RouteOfAdmin = 'oral' | 'iv' | 'im' | 'sc' | 'rectal' | 'inhalatoria' | 'sublingual' | 'topica';
+export type RouteOfAdmin = 'oral' | 'iv' | 'im' | 'sc' | 'rectal' | 'inhalatoria' | 'sublingual' | 'transdermica' | 'topica';
 
 export interface DrugConcentration {
   id: string;

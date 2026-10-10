@@ -16,6 +16,7 @@ export type DrugCategory =
   | 'Urgencias / Respiratorio'
   | 'Gastroenterología'
   | 'Corticoides'
+  | 'Alergia / Resfriado'
   | 'Antídotos / Toxicología';
 
 export type RouteOfAdmin =
@@ -26,6 +27,7 @@ export type RouteOfAdmin =
   | 'rectal'
   | 'inhalatoria'
   | 'sublingual'
+  | 'transdermica'
   | 'topica';
 
 export type WhoAWaReCategory = 'Access' | 'Watch' | 'Reserve';

@@ -54,8 +54,9 @@ export const DrugCard: React.FC<DrugCardProps> = ({
             )}
           </div>
 
-          {/* Unboxed Minimalist Metadata */}
+          {/* Unboxed Minimalist Metadata - Pure DCI Focus */}
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+            <span className="font-semibold text-blue-600 dark:text-blue-400 mr-1.5">DCI</span>
             <span>{medication.therapeuticClass}</span>
             {medication.availableRoutes && medication.availableRoutes.length > 0 && (
               <>
@@ -65,12 +66,6 @@ export const DrugCard: React.FC<DrugCardProps> = ({
                     .map((r) => (r === 'oral' ? 'VO' : r.toUpperCase()))
                     .join('/')}
                 </span>
-              </>
-            )}
-            {medication.commercialNames.length > 0 && (
-              <>
-                <span className="mx-1.5 opacity-50">·</span>
-                <span>{medication.commercialNames.slice(0, 2).join(', ')}</span>
               </>
             )}
           </p>
@@ -101,9 +96,9 @@ export const DrugCard: React.FC<DrugCardProps> = ({
         </div>
       )}
 
-      {/* Indication & Dosage Quick Info */}
-      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
-        <div className="text-slate-600 dark:text-slate-300 flex items-center gap-1 truncate pr-2">
+      {/* Indication & Dosage Quick Info with 24h Ceiling */}
+      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs gap-2">
+        <div className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5 truncate">
           <span className="truncate">{primaryIndication.name}:</span>
           <span className="font-semibold text-slate-900 dark:text-white shrink-0">
             {primaryIndication.isDosePerKgPerDose
@@ -112,6 +107,11 @@ export const DrugCard: React.FC<DrugCardProps> = ({
               ? `${primaryIndication.recommendedDoseMgPerKgPerDay} mg/kg/día`
               : `${primaryIndication.fixedAdultDoseMg} mg`}
           </span>
+          {primaryIndication.maxDailyDoseMg && (
+            <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-mono font-bold shrink-0 bg-emerald-50 dark:bg-emerald-950/70 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+              Máx 24h: {primaryIndication.maxDailyDoseMg} mg
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-0.5 text-xs text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors shrink-0">

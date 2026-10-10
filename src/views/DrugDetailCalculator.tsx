@@ -42,6 +42,7 @@ import {
   Activity,
   User,
   Scale,
+  Shield,
 } from 'lucide-react';
 
 interface DrugDetailCalculatorProps {
@@ -162,6 +163,7 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
       volumeMl: selectedConcentration.volumeMl,
       form: selectedConcentration.form,
       singleDoseQuantity: calculation.singleDoseUnitQuantity,
+      singleDoseMg: calculation.singleDoseMg,
       unitLabel: calculation.unitLabel,
       route: selectedRoute,
       intervalHours: Math.round(24 / selectedFrequency),
@@ -172,6 +174,7 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
     medication.name,
     selectedConcentration,
     calculation.singleDoseUnitQuantity,
+    calculation.singleDoseMg,
     calculation.unitLabel,
     calculation.bottlesNeeded,
     selectedRoute,
@@ -257,11 +260,13 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
       id: ind.id,
       label: ind.name,
       sublabel: ind.recommendedDoseMgPerKgPerDay
-        ? `${ind.recommendedDoseMgPerKgPerDay} mg/kg/día`
+        ? `${ind.recommendedDoseMgPerKgPerDay} mg/kg/d · Máx 24h: ${ind.maxDailyDoseMg} mg`
         : ind.fixedAdultDoseMg
-        ? `${ind.fixedAdultDoseMg} mg fija`
+        ? `${ind.fixedAdultDoseMg} mg · Máx 24h: ${ind.maxDailyDoseMg} mg`
+        : ind.maxDailyDoseMg
+        ? `Tope 24h: ${ind.maxDailyDoseMg} mg`
         : undefined,
-      badge: ind.recommendedDoseMgPerKgPerDay ? `${ind.recommendedDoseMgPerKgPerDay} mg/kg` : undefined,
+      badge: ind.maxDailyDoseMg ? `≤ ${ind.maxDailyDoseMg} mg/24h` : undefined,
     }));
   }, [medication.indications]);
 
@@ -284,6 +289,7 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
         rectal: { label: 'Vía Rectal', abbr: 'REC' },
         inhalatoria: { label: 'Inhalatoria', abbr: 'INH' },
         sublingual: { label: 'Sublingual', abbr: 'SL' },
+        transdermica: { label: 'Transdérmica', abbr: 'TD' },
         topica: { label: 'Vía Tópica', abbr: 'TOP' },
       };
       const info = labels[r] || { label: r, abbr: r.toUpperCase() };
@@ -388,8 +394,11 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
           </div>
 
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {medication.therapeuticClass}
-            {medication.commercialNames?.length > 0 && ` · Marcas: ${medication.commercialNames.slice(0, 3).join(', ')}`}
+            <span className="font-semibold text-blue-600 dark:text-blue-400 mr-1.5">DCI</span>
+            <span>{medication.therapeuticClass}</span>
+            <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-mono text-[10px]">
+              DCI Oficial
+            </span>
           </p>
         </div>
 
@@ -532,6 +541,26 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
             }}
             layout="wrap"
           />
+
+          {/* Banner de Tope de Seguridad (24 Horas) de acuerdo a Literatura Médica */}
+          <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/90 dark:border-slate-750 text-xs gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Shield className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="text-slate-600 dark:text-slate-300 font-medium truncate">
+                Tope Máximo 24h (Literatura):
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="font-bold text-slate-900 dark:text-white tabular-nums">
+                {selectedIndication.maxDailyDoseMg} mg/día
+              </span>
+              {selectedIndication.maxSingleDoseMg && (
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">
+                  (máx {selectedIndication.maxSingleDoseMg} mg/toma)
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* 2. Presentación Farmacéutica */}
@@ -703,6 +732,20 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
               </span>
             </div>
 
+            <div className={`p-2.5 rounded-lg border ${
+              calculation.isMaxDoseExceeded
+                ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800'
+                : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800'
+            }`}>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold block flex items-center gap-1">
+                <Shield className="w-3 h-3 inline" />
+                <span>Tope Seguro 24h</span>
+              </span>
+              <span className="font-bold text-slate-900 dark:text-white tabular-nums">
+                {selectedIndication.maxDailyDoseMg} mg/día
+              </span>
+            </div>
+
             <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
               <span className="text-[10px] text-slate-400 block">Duración</span>
               <span className="font-bold text-slate-900 dark:text-white">
@@ -710,20 +753,25 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
               </span>
             </div>
 
-            {calculation.totalVolumeMl !== undefined && (
+            {calculation.bottlesNeeded !== undefined ? (
+              <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
+                <span className="text-[10px] text-slate-400 block">Dispensar</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400 tabular-nums">
+                  {calculation.bottlesNeeded} frasco(s)
+                </span>
+              </div>
+            ) : calculation.totalVolumeMl !== undefined ? (
               <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
                 <span className="text-[10px] text-slate-400 block">Volumen Total</span>
                 <span className="font-bold text-slate-900 dark:text-white tabular-nums">
                   {calculation.totalVolumeMl} mL
                 </span>
               </div>
-            )}
-
-            {calculation.bottlesNeeded !== undefined && (
+            ) : (
               <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 block">Dispensar</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400 tabular-nums">
-                  {calculation.bottlesNeeded} frasco(s)
+                <span className="text-[10px] text-slate-400 block">Margen de Seguridad</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                  {calculation.isMaxDoseExceeded ? 'Tope Aplicado' : 'Dentro de Rango'}
                 </span>
               </div>
             )}
@@ -817,11 +865,14 @@ export const DrugDetailCalculator: React.FC<DrugDetailCalculatorProps> = ({
                     <span>Texto para Historia Clínica (HIS / HCE):</span>
                   </span>
                   <span className="text-[9px] font-mono text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded">
-                    Técnico
+                    Dosis Activa
                   </span>
                 </div>
                 <p className="text-xs font-mono font-medium text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-850 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800 break-words leading-relaxed select-all">
                   {hisPrescription}
+                </p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 italic pt-0.5">
+                  * Prescripción médica por dosis activa farmacológica. La preparación del volumen líquido o dilución queda a criterio de enfermería o farmacia hospitalaria.
                 </p>
               </div>
 

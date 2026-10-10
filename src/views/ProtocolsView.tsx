@@ -75,6 +75,7 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({
       volumeMl: item.volumeMl,
       form: item.form,
       singleDoseQuantity: singleQuantity,
+      singleDoseMg: singleMg,
       unitLabel,
       route: item.route,
       intervalHours: item.intervalHours,
